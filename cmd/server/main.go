@@ -35,7 +35,7 @@ func (ms MemStorage) Update(metricType string, metricName string, metricValueStr
 	case "counter":
 		// проверяем наличие метрики
 		if _, ok := ms.Metrics[metricName]; !ok {
-			return http.StatusBadRequest
+			ms.Metrics[metricName] = "0"
 		}
 
 		// конвертируем строку в значение float64, проверяем на ошибку
@@ -52,6 +52,7 @@ func (ms MemStorage) Update(metricType string, metricName string, metricValueStr
 		newMetricValue := metricValue + metricCounter
 		ms.Metrics[metricName] = fmt.Sprintf("%v", newMetricValue)
 	}
+
 	return http.StatusOK
 }
 
@@ -110,6 +111,7 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 		}
 		// отправляем в функцию update без названия метода update
 		w.WriteHeader(update(metricParts[1:]))
+		w.Write([]byte(fmt.Sprintf("%v", Storage)))
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
