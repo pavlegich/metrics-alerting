@@ -12,26 +12,51 @@ type (
 		Update(metricType string, metricName string, metricValue string)
 	}
 
-	Metric struct {
-		Name  string
-		Value string
-	}
-
 	MemStorage struct {
-		Metrics []Metric
+		Metrics map[string]string
 	}
 )
 
+var Storage = &MemStorage{make(map[string]string)}
+
 // метод Update обновляет хранилище данных в зависимости от запроса
-func (s MemStorage) Update(metricType string, metricName string, metricValue interface{}) {
-	// если нет такой метрики
-	// ...
+func (ms MemStorage) Update(metricType string, metricName string, metricValueStr string) int {
+
+	// в случае паники возвращаем ее значение
+	defer func() {
+		if p := recover(); p != nil {
+			fmt.Println(`Возникла паника: `, p)
+		}
+	}()
+
+	switch metricType {
+	case "gauge":
+		ms.Metrics[metricName] = metricValueStr
+	case "counter":
+		// проверяем наличие метрики
+		if _, ok := ms.Metrics[metricName]; !ok {
+			return http.StatusBadRequest
+		}
+
+		// конвертируем строку в значение float64, проверяем на ошибку
+		metricValue, errMetric := strconv.ParseFloat(ms.Metrics[metricName], 64)
+		if errMetric != nil {
+			panic("metric value from storage cannot be converted")
+		}
+		metricCounter, errCounter := strconv.ParseFloat(metricValueStr, 64)
+		if errCounter != nil {
+			return http.StatusBadRequest
+		}
+
+		// складываем значения и добавляем в хранилище метрик
+		newMetricValue := metricValue + metricCounter
+		ms.Metrics[metricName] = fmt.Sprintf("%v", newMetricValue)
+	}
+	return http.StatusOK
 }
 
 // функция update проверяет корректность запроса и обновляет хранилище метрик
-func update(metricParts []string, storage *MemStorage) int {
-
-	fmt.Println(metricParts)
+func update(metricParts []string) int {
 
 	// проверка на корректное количество элементов в запросе
 	if len(metricParts) < 3 {
@@ -51,30 +76,22 @@ func update(metricParts []string, storage *MemStorage) int {
 	// обновление хранлища метрик
 	switch metricType {
 	case "gauge":
-		metricValue, err := strconv.ParseFloat(metricValueStr, 64)
-		if err != nil {
+		if _, err := strconv.ParseFloat(metricValueStr, 64); err != nil {
 			return http.StatusBadRequest
 		}
-		if _, err := strconv.ParseInt(metricValueStr, 10, 64); err == nil {
-			return http.StatusBadRequest
-		}
-		storage.Update(metricType, metricName, metricValue)
+		return Storage.Update(metricType, metricName, metricValueStr)
 	case "counter":
-		metricValue, err := strconv.ParseInt(metricValueStr, 10, 64)
-		if err != nil {
+		if _, err := strconv.ParseInt(metricValueStr, 10, 64); err != nil {
 			return http.StatusBadRequest
 		}
-		storage.Update(metricType, metricName, metricValue)
+		return Storage.Update(metricType, metricName, metricValueStr)
 	default:
 		return http.StatusBadRequest
 	}
-
-	return http.StatusOK
 }
 
 // функция webhook обрабатывает HTTP-запрос
 func webhook(w http.ResponseWriter, r *http.Request) {
-	metricsStorage := &MemStorage{}
 
 	// делим URL на части
 	path := r.URL.Path
@@ -92,7 +109,7 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// отправляем в функцию update без названия метода update
-		w.WriteHeader(update(metricParts[1:], metricsStorage))
+		w.WriteHeader(update(metricParts[1:]))
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
