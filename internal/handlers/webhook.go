@@ -13,7 +13,6 @@ var Storage = storage.NewStorage()
 
 // функция webhook обрабатывает HTTP-запрос
 func Webhook(w http.ResponseWriter, r *http.Request) {
-	// var Storage = &MemStorage{make(map[string]string)}
 
 	// делим URL на части
 	path := r.URL.Path
@@ -46,24 +45,25 @@ func update(metricParts []string) int {
 	if len(metricParts) < 3 {
 		return http.StatusNotFound
 	}
-
-	metric := storage.NewMetric(metricParts[0], metricParts[1], metricParts[2])
+	metricType, metricName, metricValue := metricParts[0], metricParts[1], metricParts[2]
 
 	// проверка на пустое имя метрики
 	// metric.name = metricParts[2]
-	if metric.Name() == "" {
+	if metricName == "" {
 		return http.StatusNotFound
 	}
 
 	// проверка на корректность типа и значения метрики
 	// обновление хранлища метрик
-	switch metric.Type() {
+	switch metricType {
 	case "gauge":
+		metric := storage.NewGauge(metricType, metricName, metricValue)
 		if _, err := strconv.ParseFloat(metric.Value(), 64); err != nil {
 			return http.StatusBadRequest
 		}
 		return Storage.Update(metric)
 	case "counter":
+		metric := storage.NewCounter(metricType, metricName, metricValue)
 		if _, err := strconv.ParseInt(metric.Value(), 10, 64); err != nil {
 			return http.StatusBadRequest
 		}

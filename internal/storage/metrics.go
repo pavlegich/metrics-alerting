@@ -13,7 +13,13 @@ type (
 		Value() string
 	}
 
-	metric struct {
+	gauge struct {
+		mtype string
+		name  string
+		value string
+	}
+
+	counter struct {
 		mtype string
 		name  string
 		value string
@@ -24,20 +30,41 @@ type (
 	}
 
 	MemStorage struct {
-		Metrics map[string]string
+		Gauge   map[string]string
+		Counter map[string]string
 	}
 )
 
-func (m metric) Type() string {
+func (m gauge) Type() string {
 	return m.mtype
 }
 
-func (m metric) Name() string {
+func (m gauge) Name() string {
 	return m.name
 }
 
-func (m metric) Value() string {
+func (m gauge) Value() string {
 	return m.value
+}
+
+func NewGauge(metricType string, metricName string, metricValue string) Metric {
+	return &gauge{mtype: metricType, name: metricName, value: metricValue}
+}
+
+func (m counter) Type() string {
+	return m.mtype
+}
+
+func (m counter) Name() string {
+	return m.name
+}
+
+func (m counter) Value() string {
+	return m.value
+}
+
+func NewCounter(metricType string, metricName string, metricValue string) Metric {
+	return &counter{mtype: metricType, name: metricName, value: metricValue}
 }
 
 // метод Update обновляет хранилище данных в зависимости от запроса
@@ -52,35 +79,31 @@ func (ms MemStorage) Update(metric Metric) int {
 
 	switch metric.Type() {
 	case "gauge":
-		ms.Metrics[metric.Name()] = metric.Value()
+		ms.Gauge[metric.Name()] = metric.Value()
 	case "counter":
 		// проверяем наличие метрики
-		if _, ok := ms.Metrics[metric.Name()]; !ok {
-			ms.Metrics[metric.Name()] = "0"
+		if _, ok := ms.Counter[metric.Name()]; !ok {
+			ms.Counter[metric.Name()] = "0"
 		}
 
 		// конвертируем строку в значение float64, проверяем на ошибку
-		metricValue, errMetric := strconv.ParseFloat(ms.Metrics[metric.Name()], 64)
+		metricValue, errMetric := strconv.ParseInt(ms.Counter[metric.Name()], 10, 64)
 		if errMetric != nil {
 			panic("metric value from storage cannot be converted")
 		}
-		metricCounter, errCounter := strconv.ParseFloat(metric.Value(), 64)
+		metricCounter, errCounter := strconv.ParseInt(metric.Value(), 10, 64)
 		if errCounter != nil {
 			return http.StatusBadRequest
 		}
 
 		// складываем значения и добавляем в хранилище метрик
 		newMetricValue := metricValue + metricCounter
-		ms.Metrics[metric.Name()] = fmt.Sprintf("%v", newMetricValue)
+		ms.Counter[metric.Name()] = fmt.Sprintf("%v", newMetricValue)
 	}
 
 	return http.StatusOK
 }
 
 func NewStorage() *MemStorage {
-	return &MemStorage{make(map[string]string)}
-}
-
-func NewMetric(metricType string, metricName string, metricValue string) Metric {
-	return &metric{mtype: metricType, name: metricName, value: metricValue}
+	return &MemStorage{make(map[string]string), make(map[string]string)}
 }
