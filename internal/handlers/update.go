@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -11,7 +10,6 @@ import (
 // функция update проверяет корректность запроса и обновляет хранилище метрик
 func update(metricParts []string) int {
 
-	fmt.Println(Storage)
 	// проверка на корректное количество элементов в запросе
 	if len(metricParts) < 3 {
 		return http.StatusNotFound
