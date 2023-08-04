@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -172,7 +171,7 @@ func sendStats() {
 	target := ""
 	for _, stat := range StatsStorage {
 		target = fmt.Sprintf("http://localhost:8080/update/%s/%s/%s", stat.stype, stat.name, stat.value)
-		http.Post(target, "text/plain", bytes.NewBuffer([]byte{}))
+		http.Post(target, "", nil)
 	}
 }
 
