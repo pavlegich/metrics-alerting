@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -18,7 +19,7 @@ type (
 
 var StatsStorage = map[string]stats{}
 
-func updateStats(memStats runtime.MemStats, count int, rand float64) {
+func updateStats(memStats runtime.MemStats, count int, rand float64) error {
 
 	StatsStorage["Alloc"] = stats{
 		stype: "gauge",
@@ -165,14 +166,19 @@ func updateStats(memStats runtime.MemStats, count int, rand float64) {
 		name:  "RandomValue",
 		value: fmt.Sprintf("%v", rand),
 	}
+
+	return nil
 }
 
-func sendStats() {
+func sendStats() error {
 	target := ""
 	for _, stat := range StatsStorage {
 		target = fmt.Sprintf("http://localhost:8080/update/%s/%s/%s", stat.stype, stat.name, stat.value)
-		http.Post(target, "", nil)
+		if _, err := http.Post(target, "", nil); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func main() {
@@ -181,18 +187,24 @@ func main() {
 	// var reportInterval = time.Duration(10) * time.Second
 	pollCount := 0
 	randomValue := rand.Float64()
-	updateStats(memStats, pollCount, randomValue)
-	sendStats()
-
+	if err := updateStats(memStats, pollCount, randomValue); err != nil {
+		log.Fatal(err)
+	}
+	if err := sendStats(); err != nil {
+		log.Fatal(err)
+	}
 	for {
 		time.Sleep(pollInterval)
 		runtime.ReadMemStats(&memStats)
 		pollCount += 1
 		randomValue = rand.Float64()
-		updateStats(memStats, pollCount, randomValue)
-
+		if err := updateStats(memStats, pollCount, randomValue); err != nil {
+			log.Fatal(err)
+		}
 		if pollCount%5 == 0 {
-			sendStats()
+			if err := sendStats(); err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 
