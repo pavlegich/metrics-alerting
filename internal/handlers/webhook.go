@@ -33,6 +33,7 @@ func Webhook(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(update(metricParts[2:]))
 		// w.Write([]byte(fmt.Sprintf("%v", Storage)))
 	default:
+		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusNotFound)
 	}
 }

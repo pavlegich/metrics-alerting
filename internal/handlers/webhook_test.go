@@ -1,11 +1,10 @@
-package main
+package handlers
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/pavlegich/metrics-alerting/internal/handlers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -61,7 +60,7 @@ func TestCounterHandlers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			request := httptest.NewRequest(tc.method, tc.target, nil)
 			w := httptest.NewRecorder()
-			handlers.Webhook(w, request)
+			Webhook(w, request)
 
 			res := w.Result()
 			assert.Equal(t, tc.want.code, res.StatusCode)
@@ -102,9 +101,9 @@ func TestGaugeHandlers(t *testing.T) {
 		{
 			name:   "invalid_value",
 			method: http.MethodPost,
-			target: "/update/gauge/someMetric/42",
+			target: "/update/gauge/someMetric/42e",
 			want: want{
-				code:        200,
+				code:        400,
 				contentType: "text/plain",
 			},
 		},
@@ -122,7 +121,7 @@ func TestGaugeHandlers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			request := httptest.NewRequest(tc.method, tc.target, nil)
 			w := httptest.NewRecorder()
-			handlers.Webhook(w, request)
+			Webhook(w, request)
 
 			res := w.Result()
 			assert.Equal(t, tc.want.code, res.StatusCode)
@@ -131,7 +130,7 @@ func TestGaugeHandlers(t *testing.T) {
 	}
 }
 
-func TestMethods(t *testing.T) {
+func TestWrongRequests(t *testing.T) {
 	type want struct {
 		code        int
 		contentType string
@@ -151,12 +150,30 @@ func TestMethods(t *testing.T) {
 				contentType: "text/plain",
 			},
 		},
+		{
+			name:   "wrong_metric_type",
+			method: http.MethodPost,
+			target: "/update/someType/someMetric/30",
+			want: want{
+				code:        400,
+				contentType: "text/plain",
+			},
+		},
+		{
+			name:   "wrong_metrics_action",
+			method: http.MethodPost,
+			target: "/upgrade/gauge/someMetric/30",
+			want: want{
+				code:        404,
+				contentType: "text/plain",
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			request := httptest.NewRequest(tc.method, tc.target, nil)
 			w := httptest.NewRecorder()
-			handlers.Webhook(w, request)
+			Webhook(w, request)
 
 			res := w.Result()
 			assert.Equal(t, tc.want.code, res.StatusCode)
