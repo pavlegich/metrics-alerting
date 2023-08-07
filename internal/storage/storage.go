@@ -8,7 +8,9 @@ import (
 
 type (
 	MetricStorage interface {
-		Update(metricType string, metricName string, metricValue string)
+		Put(metricType string, metricName string, metricValue string)
+		String()
+		Get(metricName string)
 	}
 
 	MemStorage struct {
@@ -17,7 +19,7 @@ type (
 )
 
 // метод Update обновляет хранилище данных в зависимости от запроса
-func (ms MemStorage) Update(metric Metric) int {
+func (ms *MemStorage) Put(metricType string, metricName string, metricValue string) int {
 
 	// в случае паники возвращаем ее значение
 	defer func() {
@@ -26,33 +28,66 @@ func (ms MemStorage) Update(metric Metric) int {
 		}
 	}()
 
-	switch metric.Type() {
+	switch metricType {
 	case "gauge":
-		ms.metrics[metric.Name()] = metric.Value()
+		ms.metrics[metricName] = metricValue
 	case "counter":
 		// проверяем наличие метрики
-		if _, ok := ms.metrics[metric.Name()]; !ok {
-			ms.metrics[metric.Name()] = "0"
+		if _, ok := ms.metrics[metricName]; !ok {
+			ms.metrics[metricName] = "0"
 		}
 
 		// конвертируем строку в значение float64, проверяем на ошибку
-		metricValue, errMetric := strconv.ParseInt(ms.metrics[metric.Name()], 10, 64)
+		storageValue, errMetric := strconv.ParseInt(ms.metrics[metricName], 10, 64)
 		if errMetric != nil {
 			panic("metric value from storage cannot be converted")
 		}
-		metricCounter, errCounter := strconv.ParseInt(metric.Value(), 10, 64)
+		gotValue, errCounter := strconv.ParseInt(metricValue, 10, 64)
 		if errCounter != nil {
 			return http.StatusBadRequest
 		}
 
 		// складываем значения и добавляем в хранилище метрик
-		newMetricValue := metricValue + metricCounter
-		ms.metrics[metric.Name()] = fmt.Sprintf("%v", newMetricValue)
+		newMetricValue := storageValue + gotValue
+		ms.metrics[metricName] = fmt.Sprintf("%v", newMetricValue)
 	}
 
 	return http.StatusOK
 }
 
-func NewStorage() *MemStorage {
+func NewMemStorage() *MemStorage {
 	return &MemStorage{make(map[string]string)}
+}
+
+func (ms *MemStorage) MainPage() string {
+	page := `<html>
+	<head>
+		<title>Список известных метрик</title>
+	</head>
+	<body>
+		<table>
+			<tr>
+				<th>Название</th>
+				<th>Значение</th>
+			</tr>`
+	for metric, value := range ms.metrics {
+		page += fmt.Sprintf(`
+			<tr>
+				<td>%s</td>
+				<td>%s</td>
+			</tr>`, metric, value)
+	}
+	page += `
+		</table>
+	</body>
+</html>`
+	return page
+}
+
+func (ms *MemStorage) Get(metricName string) (string, int) {
+	value, ok := ms.metrics[metricName]
+	if !ok {
+		return "", http.StatusNotFound
+	}
+	return value, http.StatusOK
 }
