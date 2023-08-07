@@ -63,6 +63,9 @@ func TestCounterHandlers(t *testing.T) {
 			Webhook(w, request)
 
 			res := w.Result()
+
+			defer res.Body.Close()
+
 			assert.Equal(t, tc.want.code, res.StatusCode)
 			assert.Equal(t, tc.want.contentType, res.Header.Get("Content-Type"))
 		})
@@ -124,6 +127,9 @@ func TestGaugeHandlers(t *testing.T) {
 			Webhook(w, request)
 
 			res := w.Result()
+
+			defer res.Body.Close()
+
 			assert.Equal(t, tc.want.code, res.StatusCode)
 			assert.Equal(t, tc.want.contentType, res.Header.Get("Content-Type"))
 		})
@@ -176,6 +182,9 @@ func TestWrongRequests(t *testing.T) {
 			Webhook(w, request)
 
 			res := w.Result()
+
+			defer res.Body.Close()
+
 			assert.Equal(t, tc.want.code, res.StatusCode)
 			assert.Equal(t, tc.want.contentType, res.Header.Get("Content-Type"))
 		})

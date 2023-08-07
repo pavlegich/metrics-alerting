@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -18,6 +19,7 @@ func Webhook(w http.ResponseWriter, r *http.Request) {
 
 	// первый элемент - пустой
 	metricAction := metricParts[1]
+	fmt.Println(Storage)
 
 	// проверяется и используется метод из запроса
 	switch metricAction {

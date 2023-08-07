@@ -4,159 +4,175 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"strings"
 )
 
 type (
-	Stats struct {
+	StatsStorage interface {
+		Send() int
+		Update() error
+	}
+
+	StatStorage struct {
+		stats map[string]stat
+	}
+
+	stat struct {
 		stype string
 		name  string
 		value string
 	}
 )
 
-func UpdateStats(st map[string]Stats, memStats runtime.MemStats, count int, rand float64) error {
+func NewStatsStorage() *StatStorage {
+	return &StatStorage{
+		stats: make(map[string]stat),
+	}
+}
 
-	st["Alloc"] = Stats{
+func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64) error {
+
+	st.stats["Alloc"] = stat{
 		stype: "gauge",
 		name:  "Alloc",
 		value: fmt.Sprintf("%v", memStats.Alloc),
 	}
-	st["BuckHashSys"] = Stats{
+	st.stats["BuckHashSys"] = stat{
 		stype: "gauge",
 		name:  "BuckHashSys",
 		value: fmt.Sprintf("%v", memStats.BuckHashSys),
 	}
-	st["Frees"] = Stats{
+	st.stats["Frees"] = stat{
 		stype: "gauge",
 		name:  "Frees",
 		value: fmt.Sprintf("%v", memStats.Frees),
 	}
-	st["GCCPUFraction"] = Stats{
+	st.stats["GCCPUFraction"] = stat{
 		stype: "gauge",
 		name:  "GCCPUFraction",
 		value: fmt.Sprintf("%v", memStats.GCCPUFraction),
 	}
-	st["GCSys"] = Stats{
+	st.stats["GCSys"] = stat{
 		stype: "gauge",
 		name:  "GCSys",
 		value: fmt.Sprintf("%v", memStats.GCSys),
 	}
-	st["HeapAlloc"] = Stats{
+	st.stats["HeapAlloc"] = stat{
 		stype: "gauge",
 		name:  "HeapAlloc",
 		value: fmt.Sprintf("%v", memStats.HeapAlloc),
 	}
-	st["HeapIdle"] = Stats{
+	st.stats["HeapIdle"] = stat{
 		stype: "gauge",
 		name:  "HeapIdle",
 		value: fmt.Sprintf("%v", memStats.HeapIdle),
 	}
-	st["HeapInuse"] = Stats{
+	st.stats["HeapInuse"] = stat{
 		stype: "gauge",
 		name:  "HeapInuse",
 		value: fmt.Sprintf("%v", memStats.HeapInuse),
 	}
-	st["HeapObjects"] = Stats{
+	st.stats["HeapObjects"] = stat{
 		stype: "gauge",
 		name:  "HeapObjects",
 		value: fmt.Sprintf("%v", memStats.HeapObjects),
 	}
-	st["HeapReleased"] = Stats{
+	st.stats["HeapReleased"] = stat{
 		stype: "gauge",
 		name:  "HeapReleased",
 		value: fmt.Sprintf("%v", memStats.HeapReleased),
 	}
-	st["HeapSys"] = Stats{
+	st.stats["HeapSys"] = stat{
 		stype: "gauge",
 		name:  "HeapSys",
 		value: fmt.Sprintf("%v", memStats.HeapSys),
 	}
-	st["LastGC"] = Stats{
+	st.stats["LastGC"] = stat{
 		stype: "gauge",
 		name:  "LastGC",
 		value: fmt.Sprintf("%v", memStats.LastGC),
 	}
-	st["Lookups"] = Stats{
+	st.stats["Lookups"] = stat{
 		stype: "gauge",
 		name:  "Lookups",
 		value: fmt.Sprintf("%v", memStats.Lookups),
 	}
-	st["MCacheInuse"] = Stats{
+	st.stats["MCacheInuse"] = stat{
 		stype: "gauge",
 		name:  "MCacheInuse",
 		value: fmt.Sprintf("%v", memStats.MCacheInuse),
 	}
-	st["MCacheSys"] = Stats{
+	st.stats["MCacheSys"] = stat{
 		stype: "gauge",
 		name:  "MCacheSys",
 		value: fmt.Sprintf("%v", memStats.MCacheSys),
 	}
-	st["MSpanInuse"] = Stats{
+	st.stats["MSpanInuse"] = stat{
 		stype: "gauge",
 		name:  "MSpanInuse",
 		value: fmt.Sprintf("%v", memStats.MSpanInuse),
 	}
-	st["MSpanSys"] = Stats{
+	st.stats["MSpanSys"] = stat{
 		stype: "gauge",
 		name:  "MSpanSys",
 		value: fmt.Sprintf("%v", memStats.MSpanSys),
 	}
-	st["Mallocs"] = Stats{
+	st.stats["Mallocs"] = stat{
 		stype: "gauge",
 		name:  "Mallocs",
 		value: fmt.Sprintf("%v", memStats.Mallocs),
 	}
-	st["NextGC"] = Stats{
+	st.stats["NextGC"] = stat{
 		stype: "gauge",
 		name:  "NextGC",
 		value: fmt.Sprintf("%v", memStats.NextGC),
 	}
-	st["NumForcedGC"] = Stats{
+	st.stats["NumForcedGC"] = stat{
 		stype: "gauge",
 		name:  "NumForcedGC",
 		value: fmt.Sprintf("%v", memStats.NumForcedGC),
 	}
-	st["NumGC"] = Stats{
+	st.stats["NumGC"] = stat{
 		stype: "gauge",
 		name:  "NumGC",
 		value: fmt.Sprintf("%v", memStats.NumGC),
 	}
-	st["OtherSys"] = Stats{
+	st.stats["OtherSys"] = stat{
 		stype: "gauge",
 		name:  "OtherSys",
 		value: fmt.Sprintf("%v", memStats.OtherSys),
 	}
-	st["PauseTotalNs"] = Stats{
+	st.stats["PauseTotalNs"] = stat{
 		stype: "gauge",
 		name:  "PauseTotalNs",
 		value: fmt.Sprintf("%v", memStats.PauseTotalNs),
 	}
-	st["StackInuse"] = Stats{
+	st.stats["StackInuse"] = stat{
 		stype: "gauge",
 		name:  "StackInuse",
 		value: fmt.Sprintf("%v", memStats.StackInuse),
 	}
-	st["StackSys"] = Stats{
+	st.stats["StackSys"] = stat{
 		stype: "gauge",
 		name:  "StackSys",
 		value: fmt.Sprintf("%v", memStats.StackSys),
 	}
-	st["Sys"] = Stats{
+	st.stats["Sys"] = stat{
 		stype: "gauge",
 		name:  "Sys",
 		value: fmt.Sprintf("%v", memStats.Sys),
 	}
-	st["TotalAlloc"] = Stats{
+	st.stats["TotalAlloc"] = stat{
 		stype: "gauge",
 		name:  "TotalAlloc",
 		value: fmt.Sprintf("%v", memStats.TotalAlloc),
 	}
-	st["PollCount"] = Stats{
+	st.stats["PollCount"] = stat{
 		stype: "counter",
 		name:  "PollCount",
 		value: fmt.Sprintf("%v", count),
 	}
-	st["RandomValue"] = Stats{
+	st.stats["RandomValue"] = stat{
 		stype: "gauge",
 		name:  "RandomValue",
 		value: fmt.Sprintf("%v", rand),
@@ -165,13 +181,15 @@ func UpdateStats(st map[string]Stats, memStats runtime.MemStats, count int, rand
 	return nil
 }
 
-func SendStats(st map[string]Stats) error {
-	target := ""
-	for _, stat := range st {
-		target = fmt.Sprintf("http://localhost:8080/update/%s/%s/%s", stat.stype, stat.name, stat.value)
-		if _, err := http.Post(target, "", nil); err != nil {
-			return err
+func (st *StatStorage) Send(url string) int {
+
+	for _, stat := range st.stats {
+		target := strings.Join([]string{url, stat.stype, stat.name, stat.value}, "/")
+		res, err := http.Post(target, "", nil)
+		if err != nil {
+			return http.StatusBadRequest
 		}
+		defer res.Body.Close()
 	}
-	return nil
+	return http.StatusOK
 }
