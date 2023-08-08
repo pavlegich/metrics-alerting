@@ -9,12 +9,12 @@ import (
 type (
 	MetricStorage interface {
 		Put(metricType string, metricName string, metricValue string)
-		String()
+		HTML()
 		Get(metricName string)
 	}
 
 	MemStorage struct {
-		metrics map[string]string
+		Metrics map[string]string
 	}
 )
 
@@ -33,15 +33,15 @@ func (ms *MemStorage) Put(metricType string, metricName string, metricValue stri
 		if _, err := strconv.ParseFloat(metricValue, 64); err != nil {
 			return http.StatusBadRequest
 		}
-		ms.metrics[metricName] = metricValue
+		ms.Metrics[metricName] = metricValue
 	case "counter":
 		// проверяем наличие метрики
-		if _, ok := ms.metrics[metricName]; !ok {
-			ms.metrics[metricName] = "0"
+		if _, ok := ms.Metrics[metricName]; !ok {
+			ms.Metrics[metricName] = "0"
 		}
 
 		// конвертируем строку в значение float64, проверяем на ошибку
-		storageValue, errMetric := strconv.ParseInt(ms.metrics[metricName], 10, 64)
+		storageValue, errMetric := strconv.ParseInt(ms.Metrics[metricName], 10, 64)
 		if errMetric != nil {
 			panic("metric value from storage cannot be converted")
 		}
@@ -52,7 +52,7 @@ func (ms *MemStorage) Put(metricType string, metricName string, metricValue stri
 
 		// складываем значения и добавляем в хранилище метрик
 		newMetricValue := storageValue + gotValue
-		ms.metrics[metricName] = fmt.Sprintf("%v", newMetricValue)
+		ms.Metrics[metricName] = fmt.Sprintf("%v", newMetricValue)
 	default:
 		return http.StatusNotImplemented
 	}
@@ -64,7 +64,7 @@ func NewMemStorage() *MemStorage {
 	return &MemStorage{make(map[string]string)}
 }
 
-func (ms *MemStorage) MainPage() string {
+func (ms *MemStorage) HTML() string {
 	page := `<html>
 	<head>
 		<title>Список известных метрик</title>
@@ -75,7 +75,7 @@ func (ms *MemStorage) MainPage() string {
 				<th>Название</th>
 				<th>Значение</th>
 			</tr>`
-	for metric, value := range ms.metrics {
+	for metric, value := range ms.Metrics {
 		page += fmt.Sprintf(`
 			<tr>
 				<td>%s</td>
@@ -89,8 +89,11 @@ func (ms *MemStorage) MainPage() string {
 	return page
 }
 
-func (ms *MemStorage) Get(metricName string) (string, int) {
-	value, ok := ms.metrics[metricName]
+func (ms *MemStorage) Get(metricType string, metricName string) (string, int) {
+	if (metricType != "gauge") && (metricType != "counter") {
+		return "", http.StatusNotImplemented
+	}
+	value, ok := ms.Metrics[metricName]
 	if !ok {
 		return "", http.StatusNotFound
 	}

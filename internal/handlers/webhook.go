@@ -62,18 +62,18 @@ func (h *Webhook) handleNotFound(w http.ResponseWriter, r *http.Request) {
 func (h *Webhook) handleMain(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("main")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(h.memStorage.MainPage()))
+	w.Write([]byte(h.memStorage.HTML()))
 }
 
 func (h *Webhook) handleGetMetric(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("get metric")
-	// metricType := chi.URLParam(r, "metricType")
+	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	w.Header().Set("Content-Type", "text/plain")
-	value, status := h.memStorage.Get(metricName)
+	value, status := h.memStorage.Get(metricType, metricName)
 	if status == http.StatusOK {
 		w.Write([]byte(
-			fmt.Sprintf("Значение метрики %s: %s", metricName, value)))
+			fmt.Sprintf("%s: %s", metricName, value)))
 	}
 	w.WriteHeader(status)
 }

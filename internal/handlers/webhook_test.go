@@ -1,11 +1,40 @@
 package handlers
 
 import (
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
+
+	"github.com/pavlegich/metrics-alerting/internal/storage"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestCounterHandlers(t *testing.T) {
+func testRequest(t *testing.T, ts *httptest.Server, method,
+	path string) (*http.Response, string) {
+	req, err := http.NewRequest(method, ts.URL+path, nil)
+	require.NoError(t, err)
+
+	resp, err := ts.Client().Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	return resp, string(respBody)
+}
+
+func TestCounterPost(t *testing.T) {
+	// запуск сервера
+	ms := storage.NewMemStorage()
+	log := logrus.New()
+	h := NewWebhook(log, ms)
+	ts := httptest.NewServer(h.Route())
+	defer ts.Close()
+
 	type want struct {
 		code        int
 		contentType string
@@ -55,21 +84,22 @@ func TestCounterHandlers(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// request := httptest.NewRequest(tc.method, tc.target, nil)
-			// w := httptest.NewRecorder()
-			// Webhook(w, request)
+			resp, _ := testRequest(t, ts, tc.method, tc.target)
 
-			// res := w.Result()
-
-			// defer res.Body.Close()
-
-			// assert.Equal(t, tc.want.code, res.StatusCode)
-			// assert.Equal(t, tc.want.contentType, res.Header.Get("Content-Type"))
+			assert.Equal(t, tc.want.code, resp.StatusCode)
+			assert.Equal(t, tc.want.contentType, resp.Header.Get("Content-Type"))
 		})
 	}
 }
 
-func TestGaugeHandlers(t *testing.T) {
+func TestGaugePost(t *testing.T) {
+	// запуск сервера
+	ms := storage.NewMemStorage()
+	log := logrus.New()
+	h := NewWebhook(log, ms)
+	ts := httptest.NewServer(h.Route())
+	defer ts.Close()
+
 	type want struct {
 		code        int
 		contentType string
@@ -119,71 +149,174 @@ func TestGaugeHandlers(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// request := httptest.NewRequest(tc.method, tc.target, nil)
-			// w := httptest.NewRecorder()
-			// Webhook(w, request)
+			resp, _ := testRequest(t, ts, tc.method, tc.target)
 
-			// res := w.Result()
-
-			// defer res.Body.Close()
-
-			// assert.Equal(t, tc.want.code, res.StatusCode)
-			// assert.Equal(t, tc.want.contentType, res.Header.Get("Content-Type"))
+			assert.Equal(t, tc.want.code, resp.StatusCode)
+			assert.Equal(t, tc.want.contentType, resp.Header.Get("Content-Type"))
 		})
 	}
 }
 
-func TestWrongRequests(t *testing.T) {
+func TestGaugeGet(t *testing.T) {
+	// запуск сервера
+	ms := storage.NewMemStorage()
+	log := logrus.New()
+	h := NewWebhook(log, ms)
+	ts := httptest.NewServer(h.Route())
+	defer ts.Close()
+
 	type want struct {
 		code        int
 		contentType string
+		body        string
 	}
 	tests := []struct {
-		name   string
-		method string
-		target string
-		want   want
+		name          string
+		method        string
+		target        string
+		existedValues map[string]string
+		want          want
 	}{
 		{
-			name:   "wrong_method",
+			name:   "existed_value",
 			method: http.MethodGet,
-			target: "/update",
+			target: "/value/gauge/someMetric",
+			existedValues: map[string]string{
+				"someMetric": "144.1",
+			},
 			want: want{
-				code:        405,
+				code:        200,
 				contentType: "text/plain",
+				body:        "someMetric: 144.1",
+			},
+		},
+		{
+			name:   "not_existed_value",
+			method: http.MethodGet,
+			target: "/value/gauge/anotherMetric",
+			existedValues: map[string]string{
+				"someMetric": "144.1",
+			},
+			want: want{
+				code:        404,
+				contentType: "text/plain",
+				body:        "",
+			},
+		},
+		{
+			name:   "/value",
+			method: http.MethodGet,
+			target: "/value",
+			existedValues: map[string]string{
+				"someMetric": "144.1",
+			},
+			want: want{
+				code:        400,
+				contentType: "text/plain",
+				body:        "",
+			},
+		},
+		{
+			name:   "without_metric_name",
+			method: http.MethodGet,
+			target: "/value/gauge",
+			existedValues: map[string]string{
+				"someMetric": "144.1",
+			},
+			want: want{
+				code:        400,
+				contentType: "text/plain",
+				body:        "",
 			},
 		},
 		{
 			name:   "wrong_metric_type",
-			method: http.MethodPost,
-			target: "/update/someType/someMetric/30",
-			want: want{
-				code:        400,
-				contentType: "text/plain",
+			method: http.MethodGet,
+			target: "/value/yota/someMetric",
+			existedValues: map[string]string{
+				"someMetric": "144.1",
 			},
-		},
-		{
-			name:   "wrong_metrics_action",
-			method: http.MethodPost,
-			target: "/upgrade/gauge/someMetric/30",
 			want: want{
-				code:        404,
+				code:        501,
 				contentType: "text/plain",
+				body:        "",
 			},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// request := httptest.NewRequest(tc.method, tc.target, nil)
-			// w := httptest.NewRecorder()
-			// Webhook(w, request)
+			h.memStorage = storage.MemStorage{
+				Metrics: tc.existedValues,
+			}
+			resp, get := testRequest(t, ts, tc.method, tc.target)
 
-			// res := w.Result()
+			assert.Equal(t, tc.want.code, resp.StatusCode)
+			assert.Equal(t, tc.want.contentType, resp.Header.Get("Content-Type"))
+			assert.Equal(t, tc.want.body, get)
+		})
+	}
+}
 
-			// defer res.Body.Close()
+func TestMainPage(t *testing.T) {
+	// запуск сервера
+	ms := storage.NewMemStorage()
+	log := logrus.New()
+	h := NewWebhook(log, ms)
+	ts := httptest.NewServer(h.Route())
+	defer ts.Close()
 
-			// assert.Equal(t, tc.want.code, res.StatusCode)
-			// assert.Equal(t, tc.want.contentType, res.Header.Get("Content-Type"))
+	type want struct {
+		code        int
+		contentType string
+		body        string
+	}
+	tests := []struct {
+		name          string
+		method        string
+		target        string
+		existedValues map[string]string
+		want          want
+	}{
+		{
+			name:   "main_page",
+			method: http.MethodGet,
+			target: "/",
+			existedValues: map[string]string{
+				"someMetric": "144.1",
+			},
+			want: want{
+				code:        200,
+				contentType: "text/html; charset=utf-8",
+				body: `<html>
+	<head>
+		<title>Список известных метрик</title>
+	</head>
+	<body>
+		<table>
+			<tr>
+				<th>Название</th>
+				<th>Значение</th>
+			</tr>
+			<tr>
+				<td>someMetric</td>
+				<td>144.1</td>
+			</tr>
+		</table>
+	</body>
+</html>`,
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h.memStorage = storage.MemStorage{
+				Metrics: tc.existedValues,
+			}
+			resp, get := testRequest(t, ts, tc.method, tc.target)
+
+			assert.Equal(t, tc.want.code, resp.StatusCode)
+			assert.Equal(t, tc.want.contentType, resp.Header.Get("Content-Type"))
+			assert.Equal(t, tc.want.body, get)
 		})
 	}
 }
