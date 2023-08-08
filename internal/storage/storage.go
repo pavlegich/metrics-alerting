@@ -30,6 +30,9 @@ func (ms *MemStorage) Put(metricType string, metricName string, metricValue stri
 
 	switch metricType {
 	case "gauge":
+		if _, err := strconv.ParseFloat(metricValue, 64); err != nil {
+			return http.StatusBadRequest
+		}
 		ms.metrics[metricName] = metricValue
 	case "counter":
 		// проверяем наличие метрики
@@ -50,6 +53,8 @@ func (ms *MemStorage) Put(metricType string, metricName string, metricValue stri
 		// складываем значения и добавляем в хранилище метрик
 		newMetricValue := storageValue + gotValue
 		ms.metrics[metricName] = fmt.Sprintf("%v", newMetricValue)
+	default:
+		return http.StatusNotImplemented
 	}
 
 	return http.StatusOK
