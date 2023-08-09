@@ -188,7 +188,7 @@ func (st *StatStorage) Send(url string) int {
 		url := "http://" + target
 		resp, err := http.Post(url, "", nil)
 		if err != nil {
-			return resp.StatusCode
+			return http.StatusNotFound
 		}
 		resp.Body.Close()
 	}
