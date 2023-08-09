@@ -5,11 +5,19 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 )
+
+// type Config struct {
+// 	envAddr   string        `env:"ADDRESS"`
+// 	envReport time.Duration `env:"REPORT_INTERVAL"`
+// 	envPoll   time.Duration `env:"POLL_INTERVAL"`
+// }
 
 func main() {
 	// Считывание флагов
@@ -20,9 +28,36 @@ func main() {
 	poll := flag.Int("p", 2, "Frequency of metrics polling from the runtime package")
 	flag.Parse()
 
+	// Проверяем переменные окружения
+	// var cfg Config
+	// err := env.Parse(&cfg)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	if envAddr := os.Getenv("ADDRESS"); envAddr != "" {
+		addr.Set(envAddr)
+	}
+	if envReport := os.Getenv("REPORT_INTERVAL"); envReport != "" {
+		*report, _ = strconv.Atoi(envReport)
+	}
+	if envPoll := os.Getenv("POLL_INTERVAL"); envPoll != "" {
+		*poll, _ = strconv.Atoi(envPoll)
+	}
+
+	// if cfg.envAddr != "" {
+	// 	addr.Set(cfg.envAddr)
+	// }
+	// if cfg.envReport != time.Duration(0) {
+	// 	reportInterval = int(cfg.envReport.Seconds())
+	// }
+	// if cfg.envPoll != time.Duration(0) {
+	// 	pollInterval = cfg.envPoll
+	// }
+
 	// Интервалы опроса и отправки метрик
-	reportInterval := *report
 	pollInterval := time.Duration(*poll) * time.Second
+	reportInterval := *report
 
 	// Хранилище метрик
 	StatsStorage := storage.NewStatsStorage()

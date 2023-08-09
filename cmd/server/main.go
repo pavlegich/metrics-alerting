@@ -11,10 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func init() {
-
-}
-
 // функция run запускает сервер
 func run() error {
 	// Считывание флага адреса и его запись в структуру
@@ -22,6 +18,11 @@ func run() error {
 	_ = flag.Value(addr)
 	flag.Var(addr, "a", "HTTP-server endpoint address host:port")
 	flag.Parse()
+
+	// Проверяем переменную окружения ADDRESS
+	if envAddr := os.Getenv("ADDRESS"); envAddr != "" {
+		addr.Set(envAddr)
+	}
 
 	// Создание нового логера
 	log := logrus.New()
