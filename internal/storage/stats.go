@@ -184,8 +184,9 @@ func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64
 func (st *StatStorage) Send(url string) int {
 
 	for _, stat := range st.stats {
-		target := strings.Join([]string{url, stat.stype, stat.name, stat.value}, "/")
-		resp, err := http.Post(target, "", nil)
+		target := strings.Join([]string{url, "update", stat.stype, stat.name, stat.value}, "/")
+		url := "http://" + target
+		resp, err := http.Post(url, "", nil)
 		if err != nil {
 			return resp.StatusCode
 		}

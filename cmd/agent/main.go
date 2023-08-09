@@ -43,7 +43,7 @@ func main() {
 	time.Sleep(time.Duration(2) * time.Second)
 
 	// Начальная отправка метрик
-	if status := StatsStorage.Send("http://localhost:8080/update"); status != http.StatusOK {
+	if status := StatsStorage.Send(addr.String()); status != http.StatusOK {
 		log.Fatal(status)
 	}
 
@@ -57,7 +57,7 @@ func main() {
 			log.Fatal(err)
 		}
 		if (pollCount*2)%reportInterval == 0 {
-			if status := StatsStorage.Send("http://localhost:8080/update"); status != http.StatusOK {
+			if status := StatsStorage.Send(addr.String()); status != http.StatusOK {
 				log.Fatal(status)
 			}
 		}
