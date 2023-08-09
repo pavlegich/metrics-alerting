@@ -185,11 +185,11 @@ func (st *StatStorage) Send(url string) int {
 
 	for _, stat := range st.stats {
 		target := strings.Join([]string{url, stat.stype, stat.name, stat.value}, "/")
-		res, err := http.Post(target, "text/plain", nil)
+		resp, err := http.Post(target, "", nil)
 		if err != nil {
-			return http.StatusBadRequest
+			return resp.StatusCode
 		}
-		defer res.Body.Close()
+		resp.Body.Close()
 	}
 	return http.StatusOK
 }

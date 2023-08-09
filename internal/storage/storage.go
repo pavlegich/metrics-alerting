@@ -21,13 +21,6 @@ type (
 // метод Update обновляет хранилище данных в зависимости от запроса
 func (ms *MemStorage) Put(metricType string, metricName string, metricValue string) int {
 
-	// в случае паники возвращаем ее значение
-	defer func() {
-		if p := recover(); p != nil {
-			fmt.Println(`Возникла паника: `, p)
-		}
-	}()
-
 	switch metricType {
 	case "gauge":
 		if _, err := strconv.ParseFloat(metricValue, 64); err != nil {
@@ -43,7 +36,7 @@ func (ms *MemStorage) Put(metricType string, metricName string, metricValue stri
 		// конвертируем строку в значение float64, проверяем на ошибку
 		storageValue, errMetric := strconv.ParseInt(ms.Metrics[metricName], 10, 64)
 		if errMetric != nil {
-			panic("metric value from storage cannot be converted")
+			return http.StatusInternalServerError
 		}
 		gotValue, errCounter := strconv.ParseInt(metricValue, 10, 64)
 		if errCounter != nil {

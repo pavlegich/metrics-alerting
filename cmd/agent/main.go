@@ -11,16 +11,19 @@ import (
 )
 
 func main() {
+	time.Sleep(time.Duration(2) * time.Second)
+
 	var StatsStorage = storage.NewStatsStorage()
 
 	var memStats runtime.MemStats
 	var pollInterval = time.Duration(2) * time.Second
-	// var reportInterval = time.Duration(10) * time.Second
+	var reportInterval = 10
 	pollCount := 0
 	randomValue := rand.Float64()
 	if err := StatsStorage.Update(memStats, pollCount, randomValue); err != nil {
 		log.Fatal(err)
 	}
+
 	if status := StatsStorage.Send("http://localhost:8080/update"); status != http.StatusOK {
 		log.Fatal(status)
 	}
@@ -32,7 +35,7 @@ func main() {
 		if err := StatsStorage.Update(memStats, pollCount, randomValue); err != nil {
 			log.Fatal(err)
 		}
-		if pollCount%5 == 0 {
+		if (pollCount*2)%reportInterval == 0 {
 			if status := StatsStorage.Send("http://localhost:8080/update"); status != http.StatusOK {
 				log.Fatal(status)
 			}

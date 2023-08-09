@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -72,8 +71,7 @@ func (h *Webhook) handleGetMetric(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	value, status := h.memStorage.Get(metricType, metricName)
 	if status == http.StatusOK {
-		w.Write([]byte(
-			fmt.Sprintf("%s: %s", metricName, value)))
+		w.Write([]byte(value))
 	}
 	w.WriteHeader(status)
 }

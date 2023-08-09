@@ -189,7 +189,7 @@ func TestGaugeGet(t *testing.T) {
 			want: want{
 				code:        200,
 				contentType: "text/plain",
-				body:        "someMetric: 144.1",
+				body:        "144.1",
 			},
 		},
 		{
