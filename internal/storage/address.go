@@ -15,7 +15,7 @@ type (
 
 func (a *Address) Set(value string) error {
 	values := strings.Split(value, ":")
-	if len(values) != 2 {
+	if len(values) != 2 || values[0] == "" {
 		return errors.New("need address in a form host:port")
 	}
 	port, err := strconv.Atoi(values[1])

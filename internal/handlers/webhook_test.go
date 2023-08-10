@@ -247,7 +247,7 @@ func TestGaugeGet(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h.memStorage = storage.MemStorage{
+			h.MemStorage = storage.MemStorage{
 				Metrics: tc.existedValues,
 			}
 			resp, get := testRequest(t, ts, tc.method, tc.target)
@@ -312,7 +312,7 @@ func TestMainPage(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h.memStorage = storage.MemStorage{
+			h.MemStorage = storage.MemStorage{
 				Metrics: tc.existedValues,
 			}
 			resp, get := testRequest(t, ts, tc.method, tc.target)

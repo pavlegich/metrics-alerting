@@ -12,14 +12,14 @@ type Logger interface {
 }
 
 type Webhook struct {
-	logger     Logger
-	memStorage storage.MemStorage
+	Logger     Logger
+	MemStorage storage.MemStorage
 }
 
 func NewWebhook(logger Logger, memStorage *storage.MemStorage) *Webhook {
 	return &Webhook{
-		logger:     logger,
-		memStorage: *memStorage,
+		Logger:     logger,
+		MemStorage: *memStorage,
 	}
 }
 
@@ -47,29 +47,29 @@ func (h *Webhook) Route() *chi.Mux {
 }
 
 func (h *Webhook) handleBadRequest(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("bad request")
+	h.Logger.Info("bad request")
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusBadRequest)
 }
 
 func (h *Webhook) handleNotFound(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("not found")
+	h.Logger.Info("not found")
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusNotFound)
 }
 
 func (h *Webhook) handleMain(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("main")
+	h.Logger.Info("main")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(h.memStorage.HTML()))
+	w.Write([]byte(h.MemStorage.HTML()))
 }
 
 func (h *Webhook) handleGetMetric(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("get metric")
+	h.Logger.Info("get metric")
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	w.Header().Set("Content-Type", "text/plain")
-	value, status := h.memStorage.Get(metricType, metricName)
+	value, status := h.MemStorage.Get(metricType, metricName)
 	if status == http.StatusOK {
 		w.Write([]byte(value))
 	}
@@ -77,7 +77,7 @@ func (h *Webhook) handleGetMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Webhook) handlePostMetric(w http.ResponseWriter, r *http.Request) {
-	h.logger.Info("post metric")
+	h.Logger.Info("post metric")
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
@@ -86,6 +86,6 @@ func (h *Webhook) handlePostMetric(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	status := h.memStorage.Put(metricType, metricName, metricValue)
+	status := h.MemStorage.Put(metricType, metricName, metricValue)
 	w.WriteHeader(status)
 }
