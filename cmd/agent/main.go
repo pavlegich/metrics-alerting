@@ -37,7 +37,7 @@ func main() {
 	reportInterval := *report
 
 	// Хранилище метрик
-	StatsStorage := storage.NewStatsStorage()
+	statsStorage := storage.NewStatsStorage()
 
 	// Runtime метрики
 	var memStats runtime.MemStats
@@ -47,7 +47,7 @@ func main() {
 	randomValue := rand.Float64()
 
 	// Начальный опрос метрик
-	if err := StatsStorage.Update(memStats, pollCount, randomValue); err != nil {
+	if err := statsStorage.Update(memStats, pollCount, randomValue); err != nil {
 		log.Fatal(err)
 	}
 
@@ -55,7 +55,7 @@ func main() {
 	time.Sleep(time.Duration(2) * time.Second)
 
 	// Начальная отправка метрик
-	if status := StatsStorage.Send(addr.String()); status != http.StatusOK {
+	if status := statsStorage.Send(addr.String()); status != http.StatusOK {
 		log.Fatal(status)
 	}
 
@@ -65,11 +65,11 @@ func main() {
 		runtime.ReadMemStats(&memStats)
 		pollCount += 1
 		randomValue = rand.Float64()
-		if err := StatsStorage.Update(memStats, pollCount, randomValue); err != nil {
+		if err := statsStorage.Update(memStats, pollCount, randomValue); err != nil {
 			log.Fatal(err)
 		}
 		if (pollCount*2)%reportInterval == 0 {
-			if status := StatsStorage.Send(addr.String()); status != http.StatusOK {
+			if status := statsStorage.Send(addr.String()); status != http.StatusOK {
 				log.Fatal(status)
 			}
 		}
