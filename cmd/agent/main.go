@@ -4,7 +4,6 @@ import (
 	"flag"
 	"log"
 	"math/rand"
-	"net/http"
 	"os"
 	"runtime"
 	"strconv"
@@ -54,7 +53,7 @@ func main() {
 }
 
 // Периодический опрос и отправка метрик
-func metricsRoutine(st *storage.StatStorage, poll time.Duration, report time.Duration, addr storage.Address, c chan int) {
+func metricsRoutine(st storage.StatsStorage, poll time.Duration, report time.Duration, addr storage.Address, c chan int) {
 	tickerPoll := time.NewTicker(poll * time.Second)
 	tickerReport := time.NewTicker(report * time.Second)
 	defer tickerPoll.Stop()
@@ -81,8 +80,8 @@ func metricsRoutine(st *storage.StatStorage, poll time.Duration, report time.Dur
 				close(c)
 			}
 		case <-tickerReport.C:
-			if status := st.Send(addr.String()); status != http.StatusOK {
-				log.Fatal(status)
+			if err := st.Send(addr.String()); err != nil {
+				log.Fatal(err)
 				close(c)
 			}
 

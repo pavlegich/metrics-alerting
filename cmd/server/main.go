@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pavlegich/metrics-alerting/internal/handlers"
+	"github.com/pavlegich/metrics-alerting/internal/middlewares"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"github.com/sirupsen/logrus"
 )
@@ -36,6 +37,7 @@ func run() error {
 	webhook := handlers.NewWebhook(log, memStorage)
 
 	r := chi.NewRouter()
+	r.Use(middlewares.Recovery)
 	r.Mount("/", webhook.Route())
 
 	log.Info("Server is running on ", addr.String(), "...")

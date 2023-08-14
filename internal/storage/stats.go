@@ -9,8 +9,9 @@ import (
 
 type (
 	StatsStorage interface {
-		Send() int
-		Update() error
+		Send(url string) error
+		Update(memStats runtime.MemStats, count int, rand float64) error
+		Put(sType string, name string, value string)
 	}
 
 	StatStorage struct {
@@ -18,179 +19,71 @@ type (
 	}
 
 	stat struct {
-		stype string
+		sType string
 		name  string
 		value string
 	}
 )
 
-func NewStatsStorage() *StatStorage {
+func NewStatsStorage() StatsStorage {
 	return &StatStorage{
 		stats: make(map[string]stat),
 	}
 }
 
+func (st *StatStorage) Put(sType string, name string, value string) {
+	st.stats[name] = stat{
+		sType: sType,
+		name:  name,
+		value: value,
+	}
+}
+
 func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64) error {
 
-	st.stats["Alloc"] = stat{
-		stype: "gauge",
-		name:  "Alloc",
-		value: fmt.Sprintf("%v", memStats.Alloc),
-	}
-	st.stats["BuckHashSys"] = stat{
-		stype: "gauge",
-		name:  "BuckHashSys",
-		value: fmt.Sprintf("%v", memStats.BuckHashSys),
-	}
-	st.stats["Frees"] = stat{
-		stype: "gauge",
-		name:  "Frees",
-		value: fmt.Sprintf("%v", memStats.Frees),
-	}
-	st.stats["GCCPUFraction"] = stat{
-		stype: "gauge",
-		name:  "GCCPUFraction",
-		value: fmt.Sprintf("%v", memStats.GCCPUFraction),
-	}
-	st.stats["GCSys"] = stat{
-		stype: "gauge",
-		name:  "GCSys",
-		value: fmt.Sprintf("%v", memStats.GCSys),
-	}
-	st.stats["HeapAlloc"] = stat{
-		stype: "gauge",
-		name:  "HeapAlloc",
-		value: fmt.Sprintf("%v", memStats.HeapAlloc),
-	}
-	st.stats["HeapIdle"] = stat{
-		stype: "gauge",
-		name:  "HeapIdle",
-		value: fmt.Sprintf("%v", memStats.HeapIdle),
-	}
-	st.stats["HeapInuse"] = stat{
-		stype: "gauge",
-		name:  "HeapInuse",
-		value: fmt.Sprintf("%v", memStats.HeapInuse),
-	}
-	st.stats["HeapObjects"] = stat{
-		stype: "gauge",
-		name:  "HeapObjects",
-		value: fmt.Sprintf("%v", memStats.HeapObjects),
-	}
-	st.stats["HeapReleased"] = stat{
-		stype: "gauge",
-		name:  "HeapReleased",
-		value: fmt.Sprintf("%v", memStats.HeapReleased),
-	}
-	st.stats["HeapSys"] = stat{
-		stype: "gauge",
-		name:  "HeapSys",
-		value: fmt.Sprintf("%v", memStats.HeapSys),
-	}
-	st.stats["LastGC"] = stat{
-		stype: "gauge",
-		name:  "LastGC",
-		value: fmt.Sprintf("%v", memStats.LastGC),
-	}
-	st.stats["Lookups"] = stat{
-		stype: "gauge",
-		name:  "Lookups",
-		value: fmt.Sprintf("%v", memStats.Lookups),
-	}
-	st.stats["MCacheInuse"] = stat{
-		stype: "gauge",
-		name:  "MCacheInuse",
-		value: fmt.Sprintf("%v", memStats.MCacheInuse),
-	}
-	st.stats["MCacheSys"] = stat{
-		stype: "gauge",
-		name:  "MCacheSys",
-		value: fmt.Sprintf("%v", memStats.MCacheSys),
-	}
-	st.stats["MSpanInuse"] = stat{
-		stype: "gauge",
-		name:  "MSpanInuse",
-		value: fmt.Sprintf("%v", memStats.MSpanInuse),
-	}
-	st.stats["MSpanSys"] = stat{
-		stype: "gauge",
-		name:  "MSpanSys",
-		value: fmt.Sprintf("%v", memStats.MSpanSys),
-	}
-	st.stats["Mallocs"] = stat{
-		stype: "gauge",
-		name:  "Mallocs",
-		value: fmt.Sprintf("%v", memStats.Mallocs),
-	}
-	st.stats["NextGC"] = stat{
-		stype: "gauge",
-		name:  "NextGC",
-		value: fmt.Sprintf("%v", memStats.NextGC),
-	}
-	st.stats["NumForcedGC"] = stat{
-		stype: "gauge",
-		name:  "NumForcedGC",
-		value: fmt.Sprintf("%v", memStats.NumForcedGC),
-	}
-	st.stats["NumGC"] = stat{
-		stype: "gauge",
-		name:  "NumGC",
-		value: fmt.Sprintf("%v", memStats.NumGC),
-	}
-	st.stats["OtherSys"] = stat{
-		stype: "gauge",
-		name:  "OtherSys",
-		value: fmt.Sprintf("%v", memStats.OtherSys),
-	}
-	st.stats["PauseTotalNs"] = stat{
-		stype: "gauge",
-		name:  "PauseTotalNs",
-		value: fmt.Sprintf("%v", memStats.PauseTotalNs),
-	}
-	st.stats["StackInuse"] = stat{
-		stype: "gauge",
-		name:  "StackInuse",
-		value: fmt.Sprintf("%v", memStats.StackInuse),
-	}
-	st.stats["StackSys"] = stat{
-		stype: "gauge",
-		name:  "StackSys",
-		value: fmt.Sprintf("%v", memStats.StackSys),
-	}
-	st.stats["Sys"] = stat{
-		stype: "gauge",
-		name:  "Sys",
-		value: fmt.Sprintf("%v", memStats.Sys),
-	}
-	st.stats["TotalAlloc"] = stat{
-		stype: "gauge",
-		name:  "TotalAlloc",
-		value: fmt.Sprintf("%v", memStats.TotalAlloc),
-	}
-	st.stats["PollCount"] = stat{
-		stype: "counter",
-		name:  "PollCount",
-		value: fmt.Sprintf("%v", count),
-	}
-	st.stats["RandomValue"] = stat{
-		stype: "gauge",
-		name:  "RandomValue",
-		value: fmt.Sprintf("%v", rand),
-	}
+	st.Put("gauge", "Alloc", fmt.Sprintf("%v", memStats.Alloc))
+	st.Put("gauge", "BuckHashSys", fmt.Sprintf("%v", memStats.BuckHashSys))
+	st.Put("gauge", "Frees", fmt.Sprintf("%v", memStats.Frees))
+	st.Put("gauge", "GCCPUFraction", fmt.Sprintf("%v", memStats.GCCPUFraction))
+	st.Put("gauge", "GCSys", fmt.Sprintf("%v", memStats.GCSys))
+	st.Put("gauge", "HeapAlloc", fmt.Sprintf("%v", memStats.HeapAlloc))
+	st.Put("gauge", "HeapIdle", fmt.Sprintf("%v", memStats.HeapIdle))
+	st.Put("gauge", "HeapInuse", fmt.Sprintf("%v", memStats.HeapInuse))
+	st.Put("gauge", "HeapObjects", fmt.Sprintf("%v", memStats.HeapObjects))
+	st.Put("gauge", "HeapReleased", fmt.Sprintf("%v", memStats.HeapReleased))
+	st.Put("gauge", "HeapSys", fmt.Sprintf("%v", memStats.HeapSys))
+	st.Put("gauge", "LastGC", fmt.Sprintf("%v", memStats.LastGC))
+	st.Put("gauge", "Lookups", fmt.Sprintf("%v", memStats.Lookups))
+	st.Put("gauge", "MCacheInuse", fmt.Sprintf("%v", memStats.MCacheInuse))
+	st.Put("gauge", "MCacheSys", fmt.Sprintf("%v", memStats.MCacheSys))
+	st.Put("gauge", "MSpanInuse", fmt.Sprintf("%v", memStats.MSpanInuse))
+	st.Put("gauge", "MSpanSys", fmt.Sprintf("%v", memStats.MSpanSys))
+	st.Put("gauge", "Mallocs", fmt.Sprintf("%v", memStats.Mallocs))
+	st.Put("gauge", "NextGC", fmt.Sprintf("%v", memStats.NextGC))
+	st.Put("gauge", "NumForcedGC", fmt.Sprintf("%v", memStats.NumForcedGC))
+	st.Put("gauge", "NumGC", fmt.Sprintf("%v", memStats.NumGC))
+	st.Put("gauge", "OtherSys", fmt.Sprintf("%v", memStats.OtherSys))
+	st.Put("gauge", "PauseTotalNs", fmt.Sprintf("%v", memStats.PauseTotalNs))
+	st.Put("gauge", "StackInuse", fmt.Sprintf("%v", memStats.StackInuse))
+	st.Put("gauge", "StackSys", fmt.Sprintf("%v", memStats.StackSys))
+	st.Put("gauge", "Sys", fmt.Sprintf("%v", memStats.Sys))
+	st.Put("gauge", "TotalAlloc", fmt.Sprintf("%v", memStats.TotalAlloc))
+	st.Put("gauge", "RandomValue", fmt.Sprintf("%v", rand))
+	st.Put("counter", "PollCount", fmt.Sprintf("%v", count))
 
 	return nil
 }
 
-func (st *StatStorage) Send(url string) int {
+func (st *StatStorage) Send(url string) error {
 
 	for _, stat := range st.stats {
-		target := strings.Join([]string{url, "update", stat.stype, stat.name, stat.value}, "/")
+		target := strings.Join([]string{url, "update", stat.sType, stat.name, stat.value}, "/")
 		url := "http://" + target
 		resp, err := http.Post(url, "", nil)
 		if err != nil {
-			return http.StatusNotFound
+			return err
 		}
 		resp.Body.Close()
 	}
-	return http.StatusOK
+	return nil
 }

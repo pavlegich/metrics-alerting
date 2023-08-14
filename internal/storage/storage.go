@@ -8,9 +8,9 @@ import (
 
 type (
 	MetricStorage interface {
-		Put(metricType string, metricName string, metricValue string)
-		HTML()
-		Get(metricName string)
+		Put(metricType string, metricName string, metricValue string) int
+		HTML() string
+		Get(metricType string, metricName string) (string, int)
 	}
 
 	MemStorage struct {

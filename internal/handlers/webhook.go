@@ -13,13 +13,13 @@ type Logger interface {
 
 type Webhook struct {
 	Logger     Logger
-	MemStorage storage.MemStorage
+	MemStorage storage.MetricStorage
 }
 
-func NewWebhook(logger Logger, memStorage *storage.MemStorage) *Webhook {
+func NewWebhook(logger Logger, memStorage storage.MetricStorage) *Webhook {
 	return &Webhook{
 		Logger:     logger,
-		MemStorage: *memStorage,
+		MemStorage: memStorage,
 	}
 }
 
