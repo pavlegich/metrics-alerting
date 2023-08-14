@@ -33,45 +33,59 @@ func main() {
 	}
 
 	// Интервалы опроса и отправки метрик
-	pollInterval := time.Duration(*poll) * time.Second
-	reportInterval := *report
+	pollInterval := time.Duration(*poll)
+	reportInterval := time.Duration(*report)
 
 	// Хранилище метрик
 	statsStorage := storage.NewStatsStorage()
 
-	// Runtime метрики
-	var memStats runtime.MemStats
-
-	// Дполнительные метрики
-	pollCount := 0
-	randomValue := rand.Float64()
-
-	// Начальный опрос метрик
-	if err := statsStorage.Update(memStats, pollCount, randomValue); err != nil {
-		log.Fatal(err)
-	}
-
 	// Пауза для ожидания запуска сервера
 	time.Sleep(time.Duration(2) * time.Second)
 
-	// Начальная отправка метрик
-	if status := statsStorage.Send(addr.String()); status != http.StatusOK {
-		log.Fatal(status)
-	}
+	c := make(chan int)
+	go metricsRoutine(statsStorage, pollInterval, reportInterval, *addr, c)
 
-	// Периодический опрос и отправка метрик
 	for {
-		time.Sleep(pollInterval)
-		runtime.ReadMemStats(&memStats)
-		pollCount += 1
-		randomValue = rand.Float64()
-		if err := statsStorage.Update(memStats, pollCount, randomValue); err != nil {
-			log.Fatal(err)
+		_, ok := <-c
+		if !ok {
+			break // exit
 		}
-		if (pollCount*2)%reportInterval == 0 {
-			if status := statsStorage.Send(addr.String()); status != http.StatusOK {
-				log.Fatal(status)
+	}
+}
+
+// Периодический опрос и отправка метрик
+func metricsRoutine(st *storage.StatStorage, poll time.Duration, report time.Duration, addr storage.Address, c chan int) {
+	tickerPoll := time.NewTicker(poll * time.Second)
+	tickerReport := time.NewTicker(report * time.Second)
+	defer tickerPoll.Stop()
+	defer tickerReport.Stop()
+
+	// Runtime метрики
+	var memStats runtime.MemStats
+
+	// Дополнительные метрики
+	pollCount := 0
+	var randomValue float64
+
+	for {
+		select {
+		case <-tickerPoll.C:
+			// Обновление метрик
+			runtime.ReadMemStats(&memStats)
+			pollCount += 1
+			randomValue = rand.Float64()
+
+			// Опрос метрик
+			if err := st.Update(memStats, pollCount, randomValue); err != nil {
+				log.Fatal(err)
+				close(c)
 			}
+		case <-tickerReport.C:
+			if status := st.Send(addr.String()); status != http.StatusOK {
+				log.Fatal(status)
+				close(c)
+			}
+
 		}
 	}
 }
