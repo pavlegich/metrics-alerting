@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"net/http"
+	"time"
 
 	"log"
 )
@@ -17,6 +18,18 @@ func Recovery(next http.Handler) http.Handler {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
+func BadRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		status := "bad request"
+		h, m, s := time.Now().Clock()
+		log.Printf("[%d-%d-%d] %s", h, m, s, status)
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusBadRequest)
+
 		next.ServeHTTP(w, r)
 	})
 }

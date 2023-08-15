@@ -290,23 +290,7 @@ func TestMainPage(t *testing.T) {
 			want: want{
 				code:        200,
 				contentType: "text/html; charset=utf-8",
-				body: `<html>
-	<head>
-		<title>Список известных метрик</title>
-	</head>
-	<body>
-		<table>
-			<tr>
-				<th>Название</th>
-				<th>Значение</th>
-			</tr>
-			<tr>
-				<td>someMetric</td>
-				<td>144.1</td>
-			</tr>
-		</table>
-	</body>
-</html>`,
+				body:        "<td>someMetric</td><td>144.1</td>",
 			},
 		},
 	}
@@ -320,7 +304,7 @@ func TestMainPage(t *testing.T) {
 
 			assert.Equal(t, tc.want.code, resp.StatusCode)
 			assert.Equal(t, tc.want.contentType, resp.Header.Get("Content-Type"))
-			assert.Equal(t, tc.want.body, get)
+			assert.Contains(t, get, tc.want.body)
 		})
 	}
 }

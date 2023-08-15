@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"net/http"
+	"text/template"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
+	"github.com/pavlegich/metrics-alerting/internal/templates"
 )
 
 type Logger interface {
@@ -61,7 +63,18 @@ func (h *Webhook) handleNotFound(w http.ResponseWriter, r *http.Request) {
 func (h *Webhook) handleMain(w http.ResponseWriter, r *http.Request) {
 	h.Logger.Info("main")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(h.MemStorage.HTML()))
+	metrics := h.MemStorage.GetAll()
+	table := templates.NewTable()
+	for metric, value := range metrics {
+		table.Put(metric, value)
+	}
+	tmpl, err := template.New("index").Parse(templates.IndexTemplate)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	if err := tmpl.Execute(w, table); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 func (h *Webhook) handleGetMetric(w http.ResponseWriter, r *http.Request) {

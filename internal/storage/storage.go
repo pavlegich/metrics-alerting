@@ -7,12 +7,6 @@ import (
 )
 
 type (
-	MetricStorage interface {
-		Put(metricType string, metricName string, metricValue string) int
-		HTML() string
-		Get(metricType string, metricName string) (string, int)
-	}
-
 	MemStorage struct {
 		Metrics map[string]string
 	}
@@ -57,29 +51,8 @@ func NewMemStorage() *MemStorage {
 	return &MemStorage{make(map[string]string)}
 }
 
-func (ms *MemStorage) HTML() string {
-	page := `<html>
-	<head>
-		<title>Список известных метрик</title>
-	</head>
-	<body>
-		<table>
-			<tr>
-				<th>Название</th>
-				<th>Значение</th>
-			</tr>`
-	for metric, value := range ms.Metrics {
-		page += fmt.Sprintf(`
-			<tr>
-				<td>%s</td>
-				<td>%s</td>
-			</tr>`, metric, value)
-	}
-	page += `
-		</table>
-	</body>
-</html>`
-	return page
+func (ms *MemStorage) GetAll() map[string]string {
+	return ms.Metrics
 }
 
 func (ms *MemStorage) Get(metricType string, metricName string) (string, int) {

@@ -228,33 +228,21 @@ func TestMemStorage_Get(t *testing.T) {
 	}
 }
 
-func TestMemStorage_HTML(t *testing.T) {
+func TestMemStorage_GetAll(t *testing.T) {
 	type fields struct {
 		Metrics map[string]string
 	}
 	tests := []struct {
 		name   string
 		fields fields
-		want   string
+		want   map[string]string
 	}{
 		{
 			name: "no_values",
 			fields: fields{
 				Metrics: map[string]string{},
 			},
-			want: `<html>
-	<head>
-		<title>Список известных метрик</title>
-	</head>
-	<body>
-		<table>
-			<tr>
-				<th>Название</th>
-				<th>Значение</th>
-			</tr>
-		</table>
-	</body>
-</html>`,
+			want: map[string]string{},
 		},
 		{
 			name: "have_values",
@@ -264,27 +252,10 @@ func TestMemStorage_HTML(t *testing.T) {
 					"AnotherMetric": "3",
 				},
 			},
-			want: `<html>
-	<head>
-		<title>Список известных метрик</title>
-	</head>
-	<body>
-		<table>
-			<tr>
-				<th>Название</th>
-				<th>Значение</th>
-			</tr>
-			<tr>
-				<td>SomeMetric</td>
-				<td>4.1</td>
-			</tr>
-			<tr>
-				<td>AnotherMetric</td>
-				<td>3</td>
-			</tr>
-		</table>
-	</body>
-</html>`,
+			want: map[string]string{
+				"SomeMetric":    "4.1",
+				"AnotherMetric": "3",
+			},
 		},
 	}
 	for _, tc := range tests {
@@ -292,7 +263,7 @@ func TestMemStorage_HTML(t *testing.T) {
 			ms := &MemStorage{
 				Metrics: tc.fields.Metrics,
 			}
-			get := ms.HTML()
+			get := ms.GetAll()
 			assert.Equal(t, tc.want, get)
 		})
 	}
@@ -301,7 +272,7 @@ func TestMemStorage_HTML(t *testing.T) {
 func TestNewMemStorage(t *testing.T) {
 	tests := []struct {
 		name string
-		want *MemStorage
+		want MetricStorage
 	}{
 		{
 			name: "storage_created",

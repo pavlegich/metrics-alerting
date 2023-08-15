@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"math/rand"
 	"os"
 	"runtime"
-	"strconv"
 	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/storage"
@@ -17,23 +17,35 @@ func main() {
 	addr := storage.NewAddress()
 	_ = flag.Value(addr)
 	flag.Var(addr, "a", "HTTP-server endpoint address host:port")
-	report := flag.Int("r", 10, "Frequency of sending metrics to HTTP-server")
-	poll := flag.Int("p", 2, "Frequency of metrics polling from the runtime package")
+	report := flag.Duration("r", time.Duration(10)*time.Second, "Frequency of sending metrics to HTTP-server")
+	poll := flag.Duration("p", time.Duration(2)*time.Second, "Frequency of metrics polling from the runtime package")
 	flag.Parse()
 
 	if envAddr := os.Getenv("ADDRESS"); envAddr != "" {
 		addr.Set(envAddr)
 	}
 	if envReport := os.Getenv("REPORT_INTERVAL"); envReport != "" {
-		*report, _ = strconv.Atoi(envReport)
+		var err error
+		*report, err = time.ParseDuration(envReport)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
 	}
 	if envPoll := os.Getenv("POLL_INTERVAL"); envPoll != "" {
-		*poll, _ = strconv.Atoi(envPoll)
+		var err error
+		*poll, err = time.ParseDuration(envPoll)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
 	}
 
 	// Интервалы опроса и отправки метрик
-	pollInterval := time.Duration(*poll)
-	reportInterval := time.Duration(*report)
+	pollInterval := *poll
+	reportInterval := *report
+
+	fmt.Println(pollInterval, reportInterval)
 
 	// Хранилище метрик
 	statsStorage := storage.NewStatsStorage()
@@ -54,8 +66,8 @@ func main() {
 
 // Периодический опрос и отправка метрик
 func metricsRoutine(st storage.StatsStorage, poll time.Duration, report time.Duration, addr storage.Address, c chan int) {
-	tickerPoll := time.NewTicker(poll * time.Second)
-	tickerReport := time.NewTicker(report * time.Second)
+	tickerPoll := time.NewTicker(poll)
+	tickerReport := time.NewTicker(report)
 	defer tickerPoll.Stop()
 	defer tickerReport.Stop()
 
