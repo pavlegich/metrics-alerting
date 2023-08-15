@@ -9,7 +9,6 @@ import (
 
 	"github.com/pavlegich/metrics-alerting/internal/handlers"
 	"github.com/pavlegich/metrics-alerting/internal/models"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,8 +77,7 @@ func TestStatsStorage_New(t *testing.T) {
 func TestMemStorage_Send(t *testing.T) {
 	// запуск сервера
 	ms := NewMemStorage()
-	log := logrus.New()
-	h := handlers.NewWebhook(log, ms)
+	h := handlers.NewWebhook(ms)
 	ts := httptest.NewServer(h.Route())
 	defer ts.Close()
 	addr, _ := strings.CutPrefix(ts.URL, "http://")

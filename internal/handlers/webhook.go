@@ -7,20 +7,15 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	"github.com/pavlegich/metrics-alerting/internal/templates"
+	log "github.com/sirupsen/logrus"
 )
 
-type Logger interface {
-	Info(args ...interface{})
-}
-
 type Webhook struct {
-	Logger     Logger
 	MemStorage interfaces.MetricStorage
 }
 
-func NewWebhook(logger Logger, memStorage interfaces.MetricStorage) *Webhook {
+func NewWebhook(memStorage interfaces.MetricStorage) *Webhook {
 	return &Webhook{
-		Logger:     logger,
 		MemStorage: memStorage,
 	}
 }
@@ -49,19 +44,19 @@ func (h *Webhook) Route() *chi.Mux {
 }
 
 func (h *Webhook) HandleBadRequest(w http.ResponseWriter, r *http.Request) {
-	h.Logger.Info("bad request")
+	log.Info("bad request")
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusBadRequest)
 }
 
 func (h *Webhook) HandleNotFound(w http.ResponseWriter, r *http.Request) {
-	h.Logger.Info("not found")
+	log.Info("not found")
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusNotFound)
 }
 
 func (h *Webhook) HandleMain(w http.ResponseWriter, r *http.Request) {
-	h.Logger.Info("main")
+	log.Info("main")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	metrics := h.MemStorage.GetAll()
 	table := templates.NewTable()
@@ -78,7 +73,7 @@ func (h *Webhook) HandleMain(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Webhook) HandleGetMetric(w http.ResponseWriter, r *http.Request) {
-	h.Logger.Info("get metric")
+	log.Info("get metric")
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	w.Header().Set("Content-Type", "text/plain")
@@ -90,7 +85,7 @@ func (h *Webhook) HandleGetMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Webhook) HandlePostMetric(w http.ResponseWriter, r *http.Request) {
-	h.Logger.Info("post metric")
+	log.Info("post metric")
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")

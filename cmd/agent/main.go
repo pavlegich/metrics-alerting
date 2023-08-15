@@ -10,12 +10,13 @@ import (
 	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
+	"github.com/pavlegich/metrics-alerting/internal/models"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 )
 
 func main() {
 	// Считывание флагов
-	addr := storage.NewAddress()
+	addr := models.NewAddress()
 	_ = flag.Value(addr)
 	flag.Var(addr, "a", "HTTP-server endpoint address host:port")
 	report := flag.Int("r", 10, "Frequency of sending metrics to HTTP-server")
@@ -64,7 +65,7 @@ func main() {
 }
 
 // Периодический опрос и отправка метрик
-func metricsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Duration, addr storage.Address, c chan int) {
+func metricsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Duration, addr models.Address, c chan int) {
 	tickerPoll := time.NewTicker(poll)
 	tickerReport := time.NewTicker(report)
 	defer tickerPoll.Stop()
