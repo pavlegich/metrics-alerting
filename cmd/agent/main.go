@@ -2,13 +2,14 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"math/rand"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
 
+	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 )
 
@@ -17,8 +18,8 @@ func main() {
 	addr := storage.NewAddress()
 	_ = flag.Value(addr)
 	flag.Var(addr, "a", "HTTP-server endpoint address host:port")
-	report := flag.Duration("r", time.Duration(10)*time.Second, "Frequency of sending metrics to HTTP-server")
-	poll := flag.Duration("p", time.Duration(2)*time.Second, "Frequency of metrics polling from the runtime package")
+	report := flag.Int("r", 10, "Frequency of sending metrics to HTTP-server")
+	poll := flag.Int("p", 2, "Frequency of metrics polling from the runtime package")
 	flag.Parse()
 
 	if envAddr := os.Getenv("ADDRESS"); envAddr != "" {
@@ -26,7 +27,7 @@ func main() {
 	}
 	if envReport := os.Getenv("REPORT_INTERVAL"); envReport != "" {
 		var err error
-		*report, err = time.ParseDuration(envReport)
+		*report, err = strconv.Atoi(envReport)
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -34,7 +35,7 @@ func main() {
 	}
 	if envPoll := os.Getenv("POLL_INTERVAL"); envPoll != "" {
 		var err error
-		*poll, err = time.ParseDuration(envPoll)
+		*poll, err = strconv.Atoi(envPoll)
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -42,13 +43,11 @@ func main() {
 	}
 
 	// Интервалы опроса и отправки метрик
-	pollInterval := *poll
-	reportInterval := *report
-
-	fmt.Println(pollInterval, reportInterval)
+	pollInterval := time.Duration(*poll) * time.Second
+	reportInterval := time.Duration(*report) * time.Second
 
 	// Хранилище метрик
-	statsStorage := storage.NewStatsStorage()
+	statsStorage := storage.NewStatStorage()
 
 	// Пауза для ожидания запуска сервера
 	time.Sleep(time.Duration(2) * time.Second)
@@ -65,7 +64,7 @@ func main() {
 }
 
 // Периодический опрос и отправка метрик
-func metricsRoutine(st storage.StatsStorage, poll time.Duration, report time.Duration, addr storage.Address, c chan int) {
+func metricsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Duration, addr storage.Address, c chan int) {
 	tickerPoll := time.NewTicker(poll)
 	tickerReport := time.NewTicker(report)
 	defer tickerPoll.Stop()

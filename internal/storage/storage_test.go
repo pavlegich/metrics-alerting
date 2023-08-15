@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -272,7 +273,7 @@ func TestMemStorage_GetAll(t *testing.T) {
 func TestNewMemStorage(t *testing.T) {
 	tests := []struct {
 		name string
-		want MetricStorage
+		want interfaces.MetricStorage
 	}{
 		{
 			name: "storage_created",

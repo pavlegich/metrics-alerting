@@ -5,7 +5,7 @@ import (
 	"text/template"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/pavlegich/metrics-alerting/internal/storage"
+	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	"github.com/pavlegich/metrics-alerting/internal/templates"
 )
 
@@ -15,10 +15,10 @@ type Logger interface {
 
 type Webhook struct {
 	Logger     Logger
-	MemStorage storage.MetricStorage
+	MemStorage interfaces.MetricStorage
 }
 
-func NewWebhook(logger Logger, memStorage storage.MetricStorage) *Webhook {
+func NewWebhook(logger Logger, memStorage interfaces.MetricStorage) *Webhook {
 	return &Webhook{
 		Logger:     logger,
 		MemStorage: memStorage,
@@ -27,40 +27,40 @@ func NewWebhook(logger Logger, memStorage storage.MetricStorage) *Webhook {
 
 func (h *Webhook) Route() *chi.Mux {
 	r := chi.NewRouter()
-	r.Get("/", h.handleMain)
+	r.Get("/", h.HandleMain)
 	r.Route("/value", func(r chi.Router) {
-		r.Get("/", h.handleBadRequest)
+		r.Get("/", h.HandleBadRequest)
 		r.Route("/{metricType}", func(r chi.Router) {
-			r.Get("/", h.handleBadRequest)
-			r.Get("/{metricName}", h.handleGetMetric)
+			r.Get("/", h.HandleBadRequest)
+			r.Get("/{metricName}", h.HandleGetMetric)
 		})
 	})
 	r.Route("/update", func(r chi.Router) {
-		r.Post("/", h.handleNotFound)
+		r.Post("/", h.HandleNotFound)
 		r.Route("/{metricType}", func(r chi.Router) {
-			r.Post("/", h.handleNotFound)
+			r.Post("/", h.HandleNotFound)
 			r.Route("/{metricName}", func(r chi.Router) {
-				r.Post("/", h.handleNotFound)
-				r.Post("/{metricValue}", h.handlePostMetric)
+				r.Post("/", h.HandleNotFound)
+				r.Post("/{metricValue}", h.HandlePostMetric)
 			})
 		})
 	})
 	return r
 }
 
-func (h *Webhook) handleBadRequest(w http.ResponseWriter, r *http.Request) {
+func (h *Webhook) HandleBadRequest(w http.ResponseWriter, r *http.Request) {
 	h.Logger.Info("bad request")
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (h *Webhook) handleNotFound(w http.ResponseWriter, r *http.Request) {
+func (h *Webhook) HandleNotFound(w http.ResponseWriter, r *http.Request) {
 	h.Logger.Info("not found")
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusNotFound)
 }
 
-func (h *Webhook) handleMain(w http.ResponseWriter, r *http.Request) {
+func (h *Webhook) HandleMain(w http.ResponseWriter, r *http.Request) {
 	h.Logger.Info("main")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	metrics := h.MemStorage.GetAll()
@@ -77,7 +77,7 @@ func (h *Webhook) handleMain(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Webhook) handleGetMetric(w http.ResponseWriter, r *http.Request) {
+func (h *Webhook) HandleGetMetric(w http.ResponseWriter, r *http.Request) {
 	h.Logger.Info("get metric")
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
@@ -89,7 +89,7 @@ func (h *Webhook) handleGetMetric(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(status)
 }
 
-func (h *Webhook) handlePostMetric(w http.ResponseWriter, r *http.Request) {
+func (h *Webhook) HandlePostMetric(w http.ResponseWriter, r *http.Request) {
 	h.Logger.Info("post metric")
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")

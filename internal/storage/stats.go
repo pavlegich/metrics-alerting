@@ -5,31 +5,25 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+
+	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
-type (
-	StatStorage struct {
-		stats map[string]stat
-	}
+type StatStorage struct {
+	stats map[string]models.Stat
+}
 
-	stat struct {
-		sType string
-		name  string
-		value string
-	}
-)
-
-func NewStatsStorage() StatsStorage {
+func NewStatStorage() *StatStorage {
 	return &StatStorage{
-		stats: make(map[string]stat),
+		stats: make(map[string]models.Stat),
 	}
 }
 
 func (st *StatStorage) Put(sType string, name string, value string) {
-	st.stats[name] = stat{
-		sType: sType,
-		name:  name,
-		value: value,
+	st.stats[name] = models.Stat{
+		Type:  sType,
+		Name:  name,
+		Value: value,
 	}
 }
 
@@ -71,7 +65,7 @@ func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64
 func (st *StatStorage) Send(url string) error {
 
 	for _, stat := range st.stats {
-		target := strings.Join([]string{url, "update", stat.sType, stat.name, stat.value}, "/")
+		target := strings.Join([]string{url, "update", stat.Type, stat.Name, stat.Value}, "/")
 		url := "http://" + target
 		resp, err := http.Post(url, "", nil)
 		if err != nil {

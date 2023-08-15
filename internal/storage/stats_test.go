@@ -1,9 +1,15 @@
 package storage
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"runtime"
+	"strings"
 	"testing"
 
+	"github.com/pavlegich/metrics-alerting/internal/handlers"
+	"github.com/pavlegich/metrics-alerting/internal/models"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,7 +17,7 @@ func TestStatStorage_Update(t *testing.T) {
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 	type fields struct {
-		stats map[string]stat
+		stats map[string]models.Stat
 	}
 	type args struct {
 		memStats runtime.MemStats
@@ -27,7 +33,19 @@ func TestStatStorage_Update(t *testing.T) {
 		{
 			name: "update_stat",
 			fields: fields{
-				stats: map[string]stat{},
+				stats: map[string]models.Stat{},
+			},
+			args: args{
+				memStats: ms,
+				count:    5,
+				rand:     83.2,
+			},
+			want: false,
+		},
+		{
+			name: "update_stat",
+			fields: fields{
+				stats: map[string]models.Stat{},
 			},
 			args: args{
 				memStats: ms,
@@ -53,6 +71,71 @@ func TestStatStorage_Update(t *testing.T) {
 }
 
 func TestStatsStorage_New(t *testing.T) {
-	want := &StatStorage{stats: make(map[string]stat)}
-	assert.Equal(t, want, NewStatsStorage())
+	want := &StatStorage{stats: make(map[string]models.Stat)}
+	assert.Equal(t, want, NewStatStorage())
+}
+
+func TestMemStorage_Send(t *testing.T) {
+	// запуск сервера
+	ms := NewMemStorage()
+	log := logrus.New()
+	h := handlers.NewWebhook(log, ms)
+	ts := httptest.NewServer(h.Route())
+	defer ts.Close()
+	addr, _ := strings.CutPrefix(ts.URL, "http://")
+
+	type fields struct {
+		stats map[string]models.Stat
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		method  string
+		address string
+		want    bool
+	}{
+		{
+			name: "successful_request",
+			fields: fields{
+				stats: map[string]models.Stat{
+					"SomeMetric": {
+						Type:  "gauge",
+						Name:  "SomeMetric",
+						Value: "4.1",
+					},
+				},
+			},
+			method:  http.MethodPost,
+			address: addr,
+			want:    false,
+		},
+		{
+			name: "wrong_address",
+			fields: fields{
+				stats: map[string]models.Stat{
+					"SomeMetric": {
+						Type:  "gauge",
+						Name:  "SomeMetric",
+						Value: "4.1",
+					},
+				},
+			},
+			method:  http.MethodPost,
+			address: "localhost:443",
+			want:    true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			st := &StatStorage{
+				stats: tc.fields.stats,
+			}
+			err := st.Send(tc.address)
+			if !tc.want {
+				assert.NoError(t, err)
+				return
+			}
+			assert.Error(t, err)
+		})
+	}
 }
