@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/pavlegich/metrics-alerting/internal/storage"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,8 +29,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 func TestCounterPost(t *testing.T) {
 	// запуск сервера
 	ms := storage.NewMemStorage()
-	log := logrus.New()
-	h := NewWebhook(log, ms)
+	h := NewWebhook(ms)
 	ts := httptest.NewServer(h.Route())
 	defer ts.Close()
 
@@ -96,8 +94,7 @@ func TestCounterPost(t *testing.T) {
 func TestGaugePost(t *testing.T) {
 	// запуск сервера
 	ms := storage.NewMemStorage()
-	log := logrus.New()
-	h := NewWebhook(log, ms)
+	h := NewWebhook(ms)
 	ts := httptest.NewServer(h.Route())
 	defer ts.Close()
 
@@ -162,8 +159,7 @@ func TestGaugePost(t *testing.T) {
 func TestGaugeGet(t *testing.T) {
 	// запуск сервера
 	ms := storage.NewMemStorage()
-	log := logrus.New()
-	h := NewWebhook(log, ms)
+	h := NewWebhook(ms)
 	ts := httptest.NewServer(h.Route())
 	defer ts.Close()
 
@@ -263,8 +259,7 @@ func TestGaugeGet(t *testing.T) {
 func TestMainPage(t *testing.T) {
 	// запуск сервера
 	ms := storage.NewMemStorage()
-	log := logrus.New()
-	h := NewWebhook(log, ms)
+	h := NewWebhook(ms)
 	ts := httptest.NewServer(h.Route())
 	defer ts.Close()
 
