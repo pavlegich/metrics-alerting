@@ -51,8 +51,8 @@ func NewMemStorage() *MemStorage {
 	return &MemStorage{make(map[string]string)}
 }
 
-func (ms *MemStorage) GetAll() map[string]string {
-	return ms.Metrics
+func (ms *MemStorage) GetAll() (map[string]string, int) {
+	return ms.Metrics, http.StatusOK
 }
 
 func (ms *MemStorage) Get(metricType string, metricName string) (string, int) {

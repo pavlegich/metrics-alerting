@@ -233,17 +233,24 @@ func TestMemStorage_GetAll(t *testing.T) {
 	type fields struct {
 		Metrics map[string]string
 	}
+	type want struct {
+		metrics map[string]string
+		status  int
+	}
 	tests := []struct {
 		name   string
 		fields fields
-		want   map[string]string
+		want   want
 	}{
 		{
 			name: "no_values",
 			fields: fields{
 				Metrics: map[string]string{},
 			},
-			want: map[string]string{},
+			want: want{
+				metrics: map[string]string{},
+				status:  http.StatusOK,
+			},
 		},
 		{
 			name: "have_values",
@@ -253,9 +260,12 @@ func TestMemStorage_GetAll(t *testing.T) {
 					"AnotherMetric": "3",
 				},
 			},
-			want: map[string]string{
-				"SomeMetric":    "4.1",
-				"AnotherMetric": "3",
+			want: want{
+				metrics: map[string]string{
+					"SomeMetric":    "4.1",
+					"AnotherMetric": "3",
+				},
+				status: http.StatusOK,
 			},
 		},
 	}
@@ -264,8 +274,9 @@ func TestMemStorage_GetAll(t *testing.T) {
 			ms := &MemStorage{
 				Metrics: tc.fields.Metrics,
 			}
-			get := ms.GetAll()
-			assert.Equal(t, tc.want, get)
+			get, status := ms.GetAll()
+			assert.Equal(t, tc.want.metrics, get)
+			assert.Equal(t, tc.want.status, status)
 		})
 	}
 }
