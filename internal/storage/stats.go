@@ -1,30 +1,51 @@
 package storage
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"runtime"
-	"strings"
+	"strconv"
 
 	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
 type StatStorage struct {
-	stats map[string]models.Stat
+	stats map[string]models.Metrics
 }
 
 func NewStatStorage() *StatStorage {
 	return &StatStorage{
-		stats: make(map[string]models.Stat),
+		stats: make(map[string]models.Metrics),
 	}
 }
 
-func (st *StatStorage) Put(sType string, name string, value string) {
-	st.stats[name] = models.Stat{
-		Type:  sType,
-		Name:  name,
-		Value: value,
+func (st *StatStorage) Put(sType string, name string, value string) error {
+	switch sType {
+	case "gauge":
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return err
+		}
+		st.stats[name] = models.Metrics{
+			ID:    name,
+			MType: sType,
+			Value: &v,
+		}
+	case "counter":
+		v, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return err
+		}
+		st.stats[name] = models.Metrics{
+			ID:    name,
+			MType: sType,
+			Delta: &v,
+		}
 	}
+
+	return nil
 }
 
 func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64) error {
@@ -65,9 +86,14 @@ func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64
 func (st *StatStorage) Send(url string) error {
 
 	for _, stat := range st.stats {
-		target := strings.Join([]string{url, "update", stat.Type, stat.Name, stat.Value}, "/")
+		target := url + "/update/"
 		url := "http://" + target
-		resp, err := http.Post(url, "", nil)
+		req, err := json.Marshal(stat)
+		if err != nil {
+			return err
+		}
+		body := bytes.NewBuffer(req)
+		resp, err := http.Post(url, "application/json", body)
 		if err != nil {
 			return err
 		}

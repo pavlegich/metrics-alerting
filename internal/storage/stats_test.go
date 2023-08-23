@@ -16,7 +16,7 @@ func TestStatStorage_Update(t *testing.T) {
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 	type fields struct {
-		stats map[string]models.Stat
+		stats map[string]models.Metrics
 	}
 	type args struct {
 		memStats runtime.MemStats
@@ -32,7 +32,7 @@ func TestStatStorage_Update(t *testing.T) {
 		{
 			name: "update_stat",
 			fields: fields{
-				stats: map[string]models.Stat{},
+				stats: map[string]models.Metrics{},
 			},
 			args: args{
 				memStats: ms,
@@ -44,7 +44,7 @@ func TestStatStorage_Update(t *testing.T) {
 		{
 			name: "update_stat",
 			fields: fields{
-				stats: map[string]models.Stat{},
+				stats: map[string]models.Metrics{},
 			},
 			args: args{
 				memStats: ms,
@@ -70,7 +70,7 @@ func TestStatStorage_Update(t *testing.T) {
 }
 
 func TestStatsStorage_New(t *testing.T) {
-	want := &StatStorage{stats: make(map[string]models.Stat)}
+	want := &StatStorage{stats: make(map[string]models.Metrics)}
 	assert.Equal(t, want, NewStatStorage())
 }
 
@@ -81,9 +81,11 @@ func TestMemStorage_Send(t *testing.T) {
 	ts := httptest.NewServer(h.Route())
 	defer ts.Close()
 	addr, _ := strings.CutPrefix(ts.URL, "http://")
+	gaugeValue := float64(4.1)
+	counterValue := int64(4)
 
 	type fields struct {
-		stats map[string]models.Stat
+		stats map[string]models.Metrics
 	}
 	tests := []struct {
 		name    string
@@ -93,13 +95,28 @@ func TestMemStorage_Send(t *testing.T) {
 		want    bool
 	}{
 		{
-			name: "successful_request",
+			name: "successful_gauge_request",
 			fields: fields{
-				stats: map[string]models.Stat{
+				stats: map[string]models.Metrics{
 					"SomeMetric": {
-						Type:  "gauge",
-						Name:  "SomeMetric",
-						Value: "4.1",
+						ID:    "SomeMetric",
+						MType: "gauge",
+						Value: &gaugeValue,
+					},
+				},
+			},
+			method:  http.MethodPost,
+			address: addr,
+			want:    false,
+		},
+		{
+			name: "successful_counter_request",
+			fields: fields{
+				stats: map[string]models.Metrics{
+					"SomeMetric": {
+						ID:    "SomeMetric",
+						MType: "counter",
+						Delta: &counterValue,
 					},
 				},
 			},
@@ -110,11 +127,11 @@ func TestMemStorage_Send(t *testing.T) {
 		{
 			name: "wrong_address",
 			fields: fields{
-				stats: map[string]models.Stat{
+				stats: map[string]models.Metrics{
 					"SomeMetric": {
-						Type:  "gauge",
-						Name:  "SomeMetric",
-						Value: "4.1",
+						ID:    "SomeMetric",
+						MType: "gauge",
+						Value: &gaugeValue,
 					},
 				},
 			},
