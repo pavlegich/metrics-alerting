@@ -209,7 +209,7 @@ func TestGaugeGet(t *testing.T) {
 				"someMetric": "144.1",
 			},
 			want: want{
-				code:        http.StatusBadRequest,
+				code:        http.StatusMethodNotAllowed,
 				contentType: "",
 				body:        "",
 			},

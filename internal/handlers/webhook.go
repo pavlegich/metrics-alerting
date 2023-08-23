@@ -30,14 +30,14 @@ func (h *Webhook) Route() *chi.Mux {
 	r := chi.NewRouter()
 	r.Handle("/", middlewares.WithLogging(h.HandleMain()))
 	r.Route("/value", func(r chi.Router) {
-		r.Handle("/", middlewares.WithLogging(h.HandleGetJSONMetric()))
+		r.Handle("/", middlewares.WithLogging(h.HandlePostValue()))
 		r.Route("/{metricType}", func(r chi.Router) {
 			r.Handle("/", middlewares.WithLogging(h.HandleBadRequest()))
 			r.Handle("/{metricName}", middlewares.WithLogging(h.HandleGetMetric()))
 		})
 	})
 	r.Route("/update", func(r chi.Router) {
-		r.Handle("/", middlewares.WithLogging(h.HandlePostJSONMetric()))
+		r.Handle("/", middlewares.WithLogging(h.HandlePostUpdate()))
 		r.Route("/{metricType}", func(r chi.Router) {
 			r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
 			r.Route("/{metricName}", func(r chi.Router) {
@@ -137,7 +137,7 @@ func (h *Webhook) HandlePostMetric() http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (h *Webhook) HandlePostJSONMetric() http.Handler {
+func (h *Webhook) HandlePostUpdate() http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			// разрешаем только POST-запросы
@@ -146,18 +146,18 @@ func (h *Webhook) HandlePostJSONMetric() http.Handler {
 			return
 		}
 
-		if reqBody, err := io.ReadAll(r.Body); len(reqBody) == 0 || err != nil {
-			logger.Log.Info("got request with bad body")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
 		// десериализуем запрос в структуру модели
 		logger.Log.Info("decoding request")
 		var req models.Metrics
 		dec := json.NewDecoder(r.Body)
 		if err := dec.Decode(&req); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if reqBody, err := io.ReadAll(r.Body); len(reqBody) == 0 || err != nil {
+			logger.Log.Info("got request with bad body")
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
@@ -235,18 +235,12 @@ func (h *Webhook) HandlePostJSONMetric() http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func (h *Webhook) HandleGetJSONMetric() http.Handler {
+func (h *Webhook) HandlePostValue() http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			// разрешаем только GET-запросы
+		if r.Method != http.MethodPost {
+			// разрешаем только Post-запросы
 			logger.Log.Info("got request with bad method")
 			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-
-		if reqBody, err := io.ReadAll(r.Body); len(reqBody) == 0 || err != nil {
-			logger.Log.Info("got request with bad body")
-			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
@@ -255,7 +249,7 @@ func (h *Webhook) HandleGetJSONMetric() http.Handler {
 		var req models.Metrics
 		dec := json.NewDecoder(r.Body)
 		if err := dec.Decode(&req); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
