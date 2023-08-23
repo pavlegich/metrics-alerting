@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"text/template"
@@ -145,6 +146,12 @@ func (h *Webhook) HandlePostJSONMetric() http.Handler {
 			return
 		}
 
+		if reqBody, err := io.ReadAll(r.Body); len(reqBody) == 0 || err != nil {
+			logger.Log.Info("got request with bad body")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
 		// десериализуем запрос в структуру модели
 		logger.Log.Info("decoding request")
 		var req models.Metrics
@@ -234,6 +241,12 @@ func (h *Webhook) HandleGetJSONMetric() http.Handler {
 			// разрешаем только GET-запросы
 			logger.Log.Info("got request with bad method")
 			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		if reqBody, err := io.ReadAll(r.Body); len(reqBody) == 0 || err != nil {
+			logger.Log.Info("got request with bad body")
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 

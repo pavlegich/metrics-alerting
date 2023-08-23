@@ -48,8 +48,8 @@ func TestCounterPost(t *testing.T) {
 			method: http.MethodPost,
 			target: "/update",
 			want: want{
-				code:        404,
-				contentType: "text/plain",
+				code:        http.StatusBadRequest,
+				contentType: "",
 			},
 		},
 		{
@@ -57,7 +57,7 @@ func TestCounterPost(t *testing.T) {
 			method: http.MethodPost,
 			target: "/update/counter//42",
 			want: want{
-				code:        404,
+				code:        http.StatusNotFound,
 				contentType: "text/plain",
 			},
 		},
@@ -66,7 +66,7 @@ func TestCounterPost(t *testing.T) {
 			method: http.MethodPost,
 			target: "/update/counter/someMetric/42.1",
 			want: want{
-				code:        400,
+				code:        http.StatusBadRequest,
 				contentType: "text/plain",
 			},
 		},
@@ -75,7 +75,7 @@ func TestCounterPost(t *testing.T) {
 			method: http.MethodPost,
 			target: "/update/counter/someMetric/10",
 			want: want{
-				code:        200,
+				code:        http.StatusOK,
 				contentType: "text/plain",
 			},
 		},
@@ -113,8 +113,8 @@ func TestGaugePost(t *testing.T) {
 			method: http.MethodPost,
 			target: "/update",
 			want: want{
-				code:        404,
-				contentType: "text/plain",
+				code:        http.StatusBadRequest,
+				contentType: "",
 			},
 		},
 		{
@@ -122,7 +122,7 @@ func TestGaugePost(t *testing.T) {
 			method: http.MethodPost,
 			target: "/update/gauge//42",
 			want: want{
-				code:        404,
+				code:        http.StatusNotFound,
 				contentType: "text/plain",
 			},
 		},
@@ -131,7 +131,7 @@ func TestGaugePost(t *testing.T) {
 			method: http.MethodPost,
 			target: "/update/gauge/someMetric/42e",
 			want: want{
-				code:        400,
+				code:        http.StatusBadRequest,
 				contentType: "text/plain",
 			},
 		},
@@ -140,7 +140,7 @@ func TestGaugePost(t *testing.T) {
 			method: http.MethodPost,
 			target: "/update/gauge/someMetric/10.1",
 			want: want{
-				code:        200,
+				code:        http.StatusOK,
 				contentType: "text/plain",
 			},
 		},
@@ -183,7 +183,7 @@ func TestGaugeGet(t *testing.T) {
 				"someMetric": "144.1",
 			},
 			want: want{
-				code:        200,
+				code:        http.StatusOK,
 				contentType: "text/plain",
 				body:        "144.1",
 			},
@@ -196,7 +196,7 @@ func TestGaugeGet(t *testing.T) {
 				"someMetric": "144.1",
 			},
 			want: want{
-				code:        404,
+				code:        http.StatusNotFound,
 				contentType: "text/plain",
 				body:        "",
 			},
@@ -209,8 +209,8 @@ func TestGaugeGet(t *testing.T) {
 				"someMetric": "144.1",
 			},
 			want: want{
-				code:        400,
-				contentType: "text/plain",
+				code:        http.StatusBadRequest,
+				contentType: "",
 				body:        "",
 			},
 		},
@@ -222,7 +222,7 @@ func TestGaugeGet(t *testing.T) {
 				"someMetric": "144.1",
 			},
 			want: want{
-				code:        400,
+				code:        http.StatusBadRequest,
 				contentType: "text/plain",
 				body:        "",
 			},
@@ -235,7 +235,7 @@ func TestGaugeGet(t *testing.T) {
 				"someMetric": "144.1",
 			},
 			want: want{
-				code:        501,
+				code:        http.StatusNotImplemented,
 				contentType: "text/plain",
 				body:        "",
 			},
@@ -283,7 +283,7 @@ func TestMainPage(t *testing.T) {
 				"someMetric": "144.1",
 			},
 			want: want{
-				code:        200,
+				code:        http.StatusOK,
 				contentType: "text/html; charset=utf-8",
 				body:        "<td>someMetric</td><td>144.1</td>",
 			},
