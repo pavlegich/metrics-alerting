@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"text/template"
@@ -154,12 +153,7 @@ func (h *Webhook) HandlePostUpdate() http.Handler {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-
-		if reqBody, err := io.ReadAll(r.Body); len(reqBody) == 0 || err != nil {
-			logger.Log.Info("got request with bad body")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		fmt.Println(&req)
 
 		// проверяем, то пришел запрос понятного типа
 		if req.MType != "gauge" && req.MType != "counter" {
@@ -252,6 +246,7 @@ func (h *Webhook) HandlePostValue() http.Handler {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		fmt.Println(&req)
 
 		// проверяем, то пришел запрос понятного типа
 		if req.MType != "gauge" && req.MType != "counter" {
