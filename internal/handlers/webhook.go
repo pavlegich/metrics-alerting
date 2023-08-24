@@ -3,16 +3,15 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strconv"
-	"text/template"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	"github.com/pavlegich/metrics-alerting/internal/logger"
 	"github.com/pavlegich/metrics-alerting/internal/middlewares"
 	"github.com/pavlegich/metrics-alerting/internal/models"
-	"github.com/pavlegich/metrics-alerting/internal/templates"
 )
 
 type Webhook struct {
@@ -36,7 +35,7 @@ func (h *Webhook) Route() *chi.Mux {
 		})
 	})
 	r.Route("/update", func(r chi.Router) {
-		r.Handle("/", middlewares.WithLogging(h.HandlePostUpdate()))
+		r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandlePostUpdate())))
 		r.Route("/{metricType}", func(r chi.Router) {
 			r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
 			r.Route("/{metricName}", func(r chi.Router) {
@@ -78,11 +77,11 @@ func (h *Webhook) HandleMain() http.Handler {
 			w.WriteHeader(status)
 			return
 		}
-		table := templates.NewTable()
+		table := models.NewTable()
 		for metric, value := range metrics {
 			table.Put(metric, value)
 		}
-		tmpl, err := template.New("index").Parse(templates.IndexTemplate)
+		tmpl, err := template.New("index").Parse(models.IndexTemplate)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -145,15 +144,16 @@ func (h *Webhook) HandlePostUpdate() http.Handler {
 			return
 		}
 
+		var req models.Metrics
+
 		// десериализуем запрос в структуру модели
 		logger.Log.Info("decoding request")
-		var req models.Metrics
 		dec := json.NewDecoder(r.Body)
 		if err := dec.Decode(&req); err != nil {
+			logger.Log.Info("decoding error")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		// fmt.Println(&req)
 
 		// проверяем, то пришел запрос понятного типа
 		if req.MType != "gauge" && req.MType != "counter" {
@@ -266,7 +266,7 @@ func (h *Webhook) HandlePostValue() http.Handler {
 		// заполняем модель ответа
 		metricValue, status := h.MemStorage.Get(metricType, metricName)
 
-		fmt.Println(metricValue)
+		// fmt.Println(metricValue)
 
 		if status != http.StatusOK {
 			logger.Log.Info("metric get error")
@@ -274,10 +274,10 @@ func (h *Webhook) HandlePostValue() http.Handler {
 			return
 		}
 
-		// resp := models.Metrics{
-		// 	ID:    metricName,
-		// 	MType: metricType,
-		// }
+		resp := models.Metrics{
+			ID:    metricName,
+			MType: metricType,
+		}
 		switch metricType {
 		case "gauge":
 			v, err := strconv.ParseFloat(metricValue, 64)
@@ -285,14 +285,14 @@ func (h *Webhook) HandlePostValue() http.Handler {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			req.Value = &v
+			resp.Value = &v
 		case "counter":
 			v, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			req.Delta = &v
+			resp.Delta = &v
 		}
 
 		// установим правильный заголовок для типа данных
@@ -300,7 +300,7 @@ func (h *Webhook) HandlePostValue() http.Handler {
 
 		// сериализуем ответ сервера
 		enc := json.NewEncoder(w)
-		if err := enc.Encode(req); err != nil {
+		if err := enc.Encode(resp); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

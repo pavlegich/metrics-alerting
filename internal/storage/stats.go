@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -98,6 +99,42 @@ func (st *StatStorage) Send(url string) error {
 			return err
 		}
 
+		resp.Body.Close()
+	}
+	return nil
+}
+
+func (st *StatStorage) SendGZIP(url string) error {
+	for _, stat := range st.stats {
+		target := url + "/update/"
+		url := "http://" + target
+		req, err := json.Marshal(stat)
+		if err != nil {
+			return err
+		}
+
+		buf := bytes.NewBuffer(nil)
+		zb := gzip.NewWriter(buf)
+
+		if _, err := zb.Write(req); err != nil {
+			return err
+		}
+
+		err = zb.Close()
+		if err != nil {
+			return err
+		}
+
+		r, err := http.NewRequest(http.MethodPost, url, buf)
+		r.Header.Set("Content-Encoding", "gzip")
+		if err != nil {
+			return err
+		}
+
+		resp, err := http.DefaultClient.Do(r)
+		if err != nil {
+			return err
+		}
 		resp.Body.Close()
 	}
 	return nil
