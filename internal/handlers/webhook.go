@@ -153,7 +153,7 @@ func (h *Webhook) HandlePostUpdate() http.Handler {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		fmt.Println(&req)
+		// fmt.Println(&req)
 
 		// проверяем, то пришел запрос понятного типа
 		if req.MType != "gauge" && req.MType != "counter" {
@@ -246,7 +246,6 @@ func (h *Webhook) HandlePostValue() http.Handler {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		fmt.Println(&req)
 
 		// проверяем, то пришел запрос понятного типа
 		if req.MType != "gauge" && req.MType != "counter" {
@@ -266,15 +265,19 @@ func (h *Webhook) HandlePostValue() http.Handler {
 
 		// заполняем модель ответа
 		metricValue, status := h.MemStorage.Get(metricType, metricName)
+
+		fmt.Println(metricValue)
+
 		if status != http.StatusOK {
 			logger.Log.Info("metric get error")
 			w.WriteHeader(status)
 			return
 		}
-		resp := models.Metrics{
-			ID:    metricName,
-			MType: metricType,
-		}
+
+		// resp := models.Metrics{
+		// 	ID:    metricName,
+		// 	MType: metricType,
+		// }
 		switch metricType {
 		case "gauge":
 			v, err := strconv.ParseFloat(metricValue, 64)
@@ -282,14 +285,14 @@ func (h *Webhook) HandlePostValue() http.Handler {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			resp.Value = &v
+			req.Value = &v
 		case "counter":
 			v, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			resp.Delta = &v
+			req.Delta = &v
 		}
 
 		// установим правильный заголовок для типа данных
@@ -297,7 +300,7 @@ func (h *Webhook) HandlePostValue() http.Handler {
 
 		// сериализуем ответ сервера
 		enc := json.NewEncoder(w)
-		if err := enc.Encode(resp); err != nil {
+		if err := enc.Encode(req); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

@@ -97,6 +97,7 @@ func (st *StatStorage) Send(url string) error {
 		if err != nil {
 			return err
 		}
+
 		resp.Body.Close()
 	}
 	return nil

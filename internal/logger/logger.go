@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"bytes"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -11,6 +12,7 @@ type (
 	ResponseData struct {
 		Status int
 		Size   int
+		Body   *bytes.Buffer
 	}
 
 	// добавляем реализацию http.ResponseWriter
@@ -53,5 +55,6 @@ func (r *LoggingResponseWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter
 	size, err := r.ResponseWriter.Write(b)
 	r.ResponseData.Size += size // захватываем размер
+	r.ResponseData.Body.Write(b)
 	return size, err
 }

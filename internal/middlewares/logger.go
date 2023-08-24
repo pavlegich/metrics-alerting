@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"bytes"
 	"net/http"
 	"time"
 
@@ -16,6 +17,7 @@ func WithLogging(h http.Handler) http.Handler {
 		responseData := &logger.ResponseData{
 			Status: 0,
 			Size:   0,
+			Body:   bytes.NewBufferString(""),
 		}
 		lw := logger.LoggingResponseWriter{
 			ResponseWriter: w, // встраиваем оригинальный http.ResponseWriter
@@ -32,6 +34,7 @@ func WithLogging(h http.Handler) http.Handler {
 			zap.Duration("duration", duration),
 			zap.Int("status", responseData.Status),
 			zap.Int("size", responseData.Size),
+			zap.String("body", responseData.Body.String()),
 		)
 	}
 	// возвращаем функционально расширенный хендлер
