@@ -31,16 +31,16 @@ func (h *Webhook) Route() *chi.Mux {
 	r.Route("/value", func(r chi.Router) {
 		r.Handle("/", middlewares.WithLogging(h.HandlePostValue()))
 		r.Route("/{metricType}", func(r chi.Router) {
-			// r.Handle("/", middlewares.WithLogging(h.HandleBadRequest()))
+			r.Handle("/", middlewares.WithLogging(h.HandleBadRequest()))
 			r.Handle("/{metricName}", middlewares.WithLogging(h.HandleGetMetric()))
 		})
 	})
 	r.Route("/update", func(r chi.Router) {
 		r.Handle("/", middlewares.WithLogging(h.HandlePostUpdate()))
 		r.Route("/{metricType}", func(r chi.Router) {
-			// r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
+			r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
 			r.Route("/{metricName}", func(r chi.Router) {
-				// r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
+				r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
 				r.Handle("/{metricValue}", middlewares.WithLogging(h.HandlePostMetric()))
 			})
 		})
