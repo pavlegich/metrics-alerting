@@ -89,17 +89,15 @@ func (st *StatStorage) Send(url string) error {
 	for _, stat := range st.stats {
 		target := url + "/update/"
 		url := "http://" + target
+
 		req, err := json.Marshal(stat)
 		if err != nil {
 			return err
 		}
-		fmt.Println(url)
-		body := bytes.NewBuffer(req)
-		resp, err := http.Post(url, "application/json", body)
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(req))
 		if err != nil {
 			return err
 		}
-
 		resp.Body.Close()
 	}
 	return nil
@@ -109,6 +107,7 @@ func (st *StatStorage) SendGZIP(url string) error {
 	for _, stat := range st.stats {
 		target := url + "/update/"
 		url := "http://" + target
+
 		req, err := json.Marshal(stat)
 		if err != nil {
 			return err
@@ -116,21 +115,21 @@ func (st *StatStorage) SendGZIP(url string) error {
 
 		buf := bytes.NewBuffer(nil)
 		zb := gzip.NewWriter(buf)
-
 		if _, err := zb.Write(req); err != nil {
 			return err
 		}
-
-		err = zb.Close()
-		if err != nil {
+		if err = zb.Close(); err != nil {
 			return err
 		}
 
 		r, err := http.NewRequest(http.MethodPost, url, buf)
-		r.Header.Set("Content-Encoding", "gzip")
 		if err != nil {
 			return err
 		}
+
+		r.Header.Set("Content-Encoding", "gzip")
+		r.Header.Set("Accept-Encoding", "gzip")
+		r.Header.Set("Content-Type", "application/json")
 
 		resp, err := http.DefaultClient.Do(r)
 		if err != nil {

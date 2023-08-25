@@ -27,21 +27,21 @@ func NewWebhook(memStorage interfaces.MetricStorage) *Webhook {
 
 func (h *Webhook) Route() *chi.Mux {
 	r := chi.NewRouter()
-	r.Handle("/", middlewares.WithLogging(h.HandleMain()))
+	r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandleMain())))
 	r.Route("/value", func(r chi.Router) {
-		r.Handle("/", middlewares.WithLogging(h.HandlePostValue()))
+		r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandlePostValue())))
 		r.Route("/{metricType}", func(r chi.Router) {
-			r.Handle("/", middlewares.WithLogging(h.HandleBadRequest()))
-			r.Handle("/{metricName}", middlewares.WithLogging(h.HandleGetMetric()))
+			r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandleBadRequest())))
+			r.Handle("/{metricName}", middlewares.WithLogging(middlewares.GZIP(h.HandleGetMetric())))
 		})
 	})
 	r.Route("/update", func(r chi.Router) {
-		r.Handle("/", middlewares.WithLogging(h.HandlePostUpdate()))
+		r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandlePostUpdate())))
 		r.Route("/{metricType}", func(r chi.Router) {
-			r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
+			r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandleNotFound())))
 			r.Route("/{metricName}", func(r chi.Router) {
-				r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
-				r.Handle("/{metricValue}", middlewares.WithLogging(h.HandlePostMetric()))
+				r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandleNotFound())))
+				r.Handle("/{metricValue}", middlewares.WithLogging(middlewares.GZIP(h.HandlePostMetric())))
 			})
 		})
 	})
@@ -72,7 +72,6 @@ func (h *Webhook) HandleMain() http.Handler {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		metrics, status := h.MemStorage.GetAll()
 		if status != http.StatusOK {
 			w.WriteHeader(status)
@@ -87,11 +86,12 @@ func (h *Webhook) HandleMain() http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(status)
 		if err := tmpl.Execute(w, table); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(status)
 	}
 	return http.HandlerFunc(fn)
 }
@@ -186,7 +186,6 @@ func (h *Webhook) HandlePostUpdate() http.Handler {
 			metricValue = fmt.Sprintf("%v", *req.Delta)
 		}
 
-		fmt.Println(metricName, metricType, metricValue)
 		status := h.MemStorage.Put(metricType, metricName, metricValue)
 		if status != http.StatusOK {
 			logger.Log.Error("metric put error")
