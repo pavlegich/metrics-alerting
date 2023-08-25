@@ -10,21 +10,25 @@ import (
 	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
-	"github.com/pavlegich/metrics-alerting/internal/models"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 )
 
 func main() {
 	// Считывание флагов
-	addr := models.NewAddress()
-	_ = flag.Value(addr)
-	flag.Var(addr, "a", "HTTP-server endpoint address host:port")
+	// addr := models.NewAddress()
+	// _ = flag.Value(addr)
+	// flag.Var(addr, "a", "HTTP-server endpoint address host:port")
+
+	addr := flag.String("a", "localhost:8080", "address")
 	report := flag.Int("r", 10, "Frequency of sending metrics to HTTP-server")
 	poll := flag.Int("p", 2, "Frequency of metrics polling from the runtime package")
 	flag.Parse()
 
+	// if envAddr := os.Getenv("ADDRESS"); envAddr != "" {
+	// 	addr.Set(envAddr)
+	// }
 	if envAddr := os.Getenv("ADDRESS"); envAddr != "" {
-		addr.Set(envAddr)
+		*addr = envAddr
 	}
 	if envReport := os.Getenv("REPORT_INTERVAL"); envReport != "" {
 		var err error
@@ -51,7 +55,7 @@ func main() {
 	statsStorage := storage.NewStatStorage()
 
 	// Пауза для ожидания запуска сервера
-	time.Sleep(time.Duration(2) * time.Second)
+	time.Sleep(time.Duration(1) * time.Second)
 
 	c := make(chan int)
 	go metricsRoutine(statsStorage, pollInterval, reportInterval, *addr, c)
@@ -65,7 +69,7 @@ func main() {
 }
 
 // Периодический опрос и отправка метрик
-func metricsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Duration, addr models.Address, c chan int) {
+func metricsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Duration, addr string, c chan int) {
 	tickerPoll := time.NewTicker(poll)
 	tickerReport := time.NewTicker(report)
 	defer tickerPoll.Stop()
@@ -92,7 +96,7 @@ func metricsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.
 				close(c)
 			}
 		case <-tickerReport.C:
-			if err := st.SendGZIP(addr.String()); err != nil {
+			if err := st.Send(addr); err != nil {
 				log.Fatal(err)
 				close(c)
 			}

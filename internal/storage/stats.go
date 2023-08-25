@@ -93,6 +93,7 @@ func (st *StatStorage) Send(url string) error {
 		if err != nil {
 			return err
 		}
+		fmt.Println(url)
 		body := bytes.NewBuffer(req)
 		resp, err := http.Post(url, "application/json", body)
 		if err != nil {

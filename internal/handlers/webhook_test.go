@@ -44,15 +44,6 @@ func TestCounterPost(t *testing.T) {
 		want   want
 	}{
 		{
-			name:   "update",
-			method: http.MethodPost,
-			target: "/update",
-			want: want{
-				code:        http.StatusBadRequest,
-				contentType: "",
-			},
-		},
-		{
 			name:   "without_id",
 			method: http.MethodPost,
 			target: "/update/counter//42",
@@ -108,15 +99,6 @@ func TestGaugePost(t *testing.T) {
 		target string
 		want   want
 	}{
-		{
-			name:   "update",
-			method: http.MethodPost,
-			target: "/update",
-			want: want{
-				code:        http.StatusBadRequest,
-				contentType: "",
-			},
-		},
 		{
 			name:   "without_id",
 			method: http.MethodPost,

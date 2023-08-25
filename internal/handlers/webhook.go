@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -30,16 +31,16 @@ func (h *Webhook) Route() *chi.Mux {
 	r.Route("/value", func(r chi.Router) {
 		r.Handle("/", middlewares.WithLogging(h.HandlePostValue()))
 		r.Route("/{metricType}", func(r chi.Router) {
-			r.Handle("/", middlewares.WithLogging(h.HandleBadRequest()))
+			// r.Handle("/", middlewares.WithLogging(h.HandleBadRequest()))
 			r.Handle("/{metricName}", middlewares.WithLogging(h.HandleGetMetric()))
 		})
 	})
 	r.Route("/update", func(r chi.Router) {
-		r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandlePostUpdate())))
+		r.Handle("/", middlewares.WithLogging(h.HandlePostUpdate()))
 		r.Route("/{metricType}", func(r chi.Router) {
-			r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
+			// r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
 			r.Route("/{metricName}", func(r chi.Router) {
-				r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
+				// r.Handle("/", middlewares.WithLogging(h.HandleNotFound()))
 				r.Handle("/{metricValue}", middlewares.WithLogging(h.HandlePostMetric()))
 			})
 		})
@@ -148,9 +149,15 @@ func (h *Webhook) HandlePostUpdate() http.Handler {
 
 		// десериализуем запрос в структуру модели
 		logger.Log.Info("decoding request")
-		dec := json.NewDecoder(r.Body)
-		if err := dec.Decode(&req); err != nil {
-			logger.Log.Info("decoding error")
+		var buf bytes.Buffer
+		_, err := buf.ReadFrom(r.Body)
+		if err != nil {
+			logger.Log.Error("read body error")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if err := json.Unmarshal(buf.Bytes(), &req); err != nil {
+			logger.Log.Error("decoding error")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -165,7 +172,7 @@ func (h *Webhook) HandlePostUpdate() http.Handler {
 
 		// при правильном имени метрики, помещаем метрику в хранилище
 		if req.ID == "" {
-			logger.Log.Info("got metric with bad name")
+			logger.Log.Error("got metric with bad name")
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -179,9 +186,10 @@ func (h *Webhook) HandlePostUpdate() http.Handler {
 			metricValue = fmt.Sprintf("%v", *req.Delta)
 		}
 
+		fmt.Println(metricName, metricType, metricValue)
 		status := h.MemStorage.Put(metricType, metricName, metricValue)
 		if status != http.StatusOK {
-			logger.Log.Info("metric put error")
+			logger.Log.Error("metric put error")
 			w.WriteHeader(status)
 			return
 		}
@@ -193,10 +201,9 @@ func (h *Webhook) HandlePostUpdate() http.Handler {
 			w.WriteHeader(status)
 			return
 		}
-		resp := models.Metrics{
-			ID:    metricName,
-			MType: metricType,
-		}
+
+		var resp models.Metrics
+
 		switch metricType {
 		case "gauge":
 			v, err := strconv.ParseFloat(newValue, 64)
@@ -204,27 +211,39 @@ func (h *Webhook) HandlePostUpdate() http.Handler {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			resp.Value = &v
+			resp = models.Metrics{
+				ID:    metricName,
+				MType: metricType,
+				Value: &v,
+			}
 		case "counter":
 			v, err := strconv.ParseInt(newValue, 10, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			resp.Delta = &v
+			resp = models.Metrics{
+				ID:    metricName,
+				MType: metricType,
+				Delta: &v,
+			}
+		default:
+			logger.Log.Info("got wrong metric type")
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 
-		// установим правильный заголовок для типа данных
-		w.Header().Set("Content-Type", "application/json")
-
 		// сериализуем ответ сервера
-		enc := json.NewEncoder(w)
-		if err := enc.Encode(resp); err != nil {
+		respJSON, err := json.Marshal(resp)
+		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
+		// установим правильный заголовок для типа данных
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(respJSON))
 	}
 	return http.HandlerFunc(fn)
 }
@@ -237,12 +256,20 @@ func (h *Webhook) HandlePostValue() http.Handler {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
+		fmt.Println(h.MemStorage.GetAll())
+		var req models.Metrics
 
 		// десериализуем запрос в структуру модели
 		logger.Log.Info("decoding request")
-		var req models.Metrics
-		dec := json.NewDecoder(r.Body)
-		if err := dec.Decode(&req); err != nil {
+		var buf bytes.Buffer
+		_, err := buf.ReadFrom(r.Body)
+		if err != nil {
+			logger.Log.Error("read body error")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if err := json.Unmarshal(buf.Bytes(), &req); err != nil {
+			logger.Log.Error("decoding error")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -266,18 +293,13 @@ func (h *Webhook) HandlePostValue() http.Handler {
 		// заполняем модель ответа
 		metricValue, status := h.MemStorage.Get(metricType, metricName)
 
-		// fmt.Println(metricValue)
-
 		if status != http.StatusOK {
 			logger.Log.Info("metric get error")
 			w.WriteHeader(status)
 			return
 		}
 
-		resp := models.Metrics{
-			ID:    metricName,
-			MType: metricType,
-		}
+		var resp models.Metrics
 		switch metricType {
 		case "gauge":
 			v, err := strconv.ParseFloat(metricValue, 64)
@@ -285,27 +307,36 @@ func (h *Webhook) HandlePostValue() http.Handler {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			resp.Value = &v
+			resp = models.Metrics{
+				ID:    metricName,
+				MType: metricType,
+				Value: &v,
+			}
 		case "counter":
 			v, err := strconv.ParseInt(metricValue, 10, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			resp.Delta = &v
+			resp = models.Metrics{
+				ID:    metricName,
+				MType: metricType,
+				Delta: &v,
+			}
 		}
 
-		// установим правильный заголовок для типа данных
-		w.Header().Set("Content-Type", "application/json")
-
 		// сериализуем ответ сервера
-		enc := json.NewEncoder(w)
-		if err := enc.Encode(resp); err != nil {
+		respJSON, err := json.Marshal(resp)
+		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		fmt.Println(h.MemStorage.GetAll())
 
+		// установим правильный заголовок для типа данных
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(respJSON))
 	}
 	return http.HandlerFunc(fn)
 }
