@@ -28,7 +28,6 @@ func main() {
 	statsStorage := agent.NewStatStorage()
 
 	// Пауза для ожидания запуска сервера
-	time.Sleep(time.Duration(3) * time.Second)
 
 	c := make(chan int)
 	// Периодический опрос и отправка метрик
