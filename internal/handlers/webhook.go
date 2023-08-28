@@ -28,7 +28,7 @@ func NewWebhook(memStorage interfaces.MetricStorage) *Webhook {
 func (h *Webhook) Route() *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middlewares.WithLogging)
-	// r.Use(middlewares.GZIP)
+	r.Use(middlewares.GZIP)
 
 	r.Get("/", h.HandleMain)
 	r.Post("/value/", h.HandlePostValue)
