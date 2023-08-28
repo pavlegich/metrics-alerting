@@ -40,18 +40,18 @@ func Run() error {
 	// Создание хранилища метрик
 	memStorage := storage.NewMemStorage()
 
+	// Создание нового хендлера для сервера
+	webhook := handlers.NewWebhook(memStorage)
+
 	logger.Log.Info("load storage")
 	// Загрузка данных из файла
 	if cfg.Restore {
 		var err error
-		memStorage, err = storage.LoadStorage(cfg.StoragePath)
+		err = storage.Load(cfg.StoragePath, &webhook.MemStorage)
 		if err != nil {
 			return err
 		}
 	}
-
-	// Создание нового хендлера для сервера
-	webhook := handlers.NewWebhook(memStorage)
 
 	logger.Log.Info("metrics routine")
 	if cfg.StoragePath != "" {

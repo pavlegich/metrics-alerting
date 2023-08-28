@@ -165,7 +165,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 		metricValue = fmt.Sprintf("%v", *req.Delta)
 	}
 
-	fmt.Println(metricType, metricName, metricValue)
+	// fmt.Println(metricType, metricName, metricValue)
 
 	status := h.MemStorage.Put(metricType, metricName, metricValue)
 	if status != http.StatusOK {
@@ -233,7 +233,7 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	fmt.Println(h.MemStorage.GetAll())
+	// fmt.Println(h.MemStorage.GetAll())
 
 	var req models.Metrics
 
@@ -268,7 +268,7 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 	}
 	metricName := req.ID
 
-	fmt.Println(metricType, metricName)
+	// fmt.Println(metricType, metricName)
 
 	// заполняем модель ответа
 	metricValue, status := h.MemStorage.Get(metricType, metricName)
@@ -311,7 +311,7 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	fmt.Println(h.MemStorage.GetAll())
+	// fmt.Println(h.MemStorage.GetAll())
 
 	// установим правильный заголовок для типа данных
 	w.Header().Set("Content-Type", "application/json")
