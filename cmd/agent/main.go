@@ -1,61 +1,39 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"math/rand"
-	"os"
 	"runtime"
-	"strconv"
 	"time"
 
+	"github.com/pavlegich/metrics-alerting/internal/agent"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
-	"github.com/pavlegich/metrics-alerting/internal/models"
-	"github.com/pavlegich/metrics-alerting/internal/storage"
+	"github.com/pavlegich/metrics-alerting/internal/logger"
 )
 
 func main() {
-	// Считывание флагов
-	addr := models.NewAddress()
-	_ = flag.Value(addr)
-	flag.Var(addr, "a", "HTTP-server endpoint address host:port")
-
-	report := flag.Int("r", 10, "Frequency of sending metrics to HTTP-server")
-	poll := flag.Int("p", 2, "Frequency of metrics polling from the runtime package")
-	flag.Parse()
-
-	if envAddr := os.Getenv("ADDRESS"); envAddr != "" {
-		addr.Set(envAddr)
+	if err := logger.Initialize("Info"); err != nil {
+		log.Fatalln(err)
 	}
-	if envReport := os.Getenv("REPORT_INTERVAL"); envReport != "" {
-		var err error
-		*report, err = strconv.Atoi(envReport)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-	}
-	if envPoll := os.Getenv("POLL_INTERVAL"); envPoll != "" {
-		var err error
-		*poll, err = strconv.Atoi(envPoll)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
+	defer logger.Log.Sync()
+
+	cfg, err := agent.ParseFlags()
+	if err != nil {
+		logger.Log.Info("parse flags error")
 	}
 
 	// Интервалы опроса и отправки метрик
-	pollInterval := time.Duration(*poll) * time.Second
-	reportInterval := time.Duration(*report) * time.Second
+	pollInterval := time.Duration(cfg.PollInterval) * time.Second
+	reportInterval := time.Duration(cfg.ReportInterval) * time.Second
 
 	// Хранилище метрик
-	statsStorage := storage.NewStatStorage()
+	statsStorage := agent.NewStatStorage()
 
 	// Пауза для ожидания запуска сервера
 	time.Sleep(time.Duration(2) * time.Second)
 
 	c := make(chan int)
-	go metricsRoutine(statsStorage, pollInterval, reportInterval, addr.String(), c)
+	go metricsRoutine(statsStorage, pollInterval, reportInterval, cfg.Address, c)
 
 	for {
 		_, ok := <-c
@@ -93,7 +71,7 @@ func metricsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.
 				close(c)
 			}
 		case <-tickerReport.C:
-			if err := st.Send(addr); err != nil {
+			if err := st.SendGZIP(addr); err != nil {
 				log.Fatal(err)
 				close(c)
 			}

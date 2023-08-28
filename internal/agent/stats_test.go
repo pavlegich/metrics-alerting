@@ -1,4 +1,4 @@
-package storage
+package agent
 
 import (
 	"net/http"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/pavlegich/metrics-alerting/internal/handlers"
 	"github.com/pavlegich/metrics-alerting/internal/models"
+	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,7 +77,7 @@ func TestStatsStorage_New(t *testing.T) {
 
 func TestMemStorage_Send(t *testing.T) {
 	// запуск сервера
-	ms := NewMemStorage()
+	ms := storage.NewMemStorage()
 	h := handlers.NewWebhook(ms)
 	ts := httptest.NewServer(h.Route())
 	defer ts.Close()

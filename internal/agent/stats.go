@@ -1,4 +1,4 @@
-package storage
+package agent
 
 import (
 	"bytes"
@@ -111,8 +111,6 @@ func (st *StatStorage) SendGZIP(url string) error {
 		if err != nil {
 			return err
 		}
-
-		fmt.Println(req)
 
 		buf := bytes.NewBuffer(nil)
 		zb := gzip.NewWriter(buf)

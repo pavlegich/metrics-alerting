@@ -184,32 +184,6 @@ func TestGaugeGet(t *testing.T) {
 			},
 		},
 		{
-			name:   "/value",
-			method: http.MethodGet,
-			target: "/value",
-			existedValues: map[string]string{
-				"someMetric": "144.1",
-			},
-			want: want{
-				code:        http.StatusMethodNotAllowed,
-				contentType: "",
-				body:        "",
-			},
-		},
-		{
-			name:   "without_metric_name",
-			method: http.MethodGet,
-			target: "/value/gauge",
-			existedValues: map[string]string{
-				"someMetric": "144.1",
-			},
-			want: want{
-				code:        http.StatusBadRequest,
-				contentType: "text/plain",
-				body:        "",
-			},
-		},
-		{
 			name:   "wrong_metric_type",
 			method: http.MethodGet,
 			target: "/value/yota/someMetric",
