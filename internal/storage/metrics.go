@@ -8,7 +8,7 @@ import (
 
 type (
 	MemStorage struct {
-		Metrics map[string]string
+		Metrics map[string]string `json:"metrics"`
 	}
 )
 

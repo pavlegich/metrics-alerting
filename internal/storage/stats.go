@@ -50,7 +50,6 @@ func (st *StatStorage) Put(sType string, name string, value string) error {
 }
 
 func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64) error {
-
 	st.Put("gauge", "Alloc", fmt.Sprintf("%v", memStats.Alloc))
 	st.Put("gauge", "BuckHashSys", fmt.Sprintf("%v", memStats.BuckHashSys))
 	st.Put("gauge", "Frees", fmt.Sprintf("%v", memStats.Frees))
@@ -85,7 +84,6 @@ func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64
 }
 
 func (st *StatStorage) Send(url string) error {
-
 	for _, stat := range st.stats {
 		target := url + "/update/"
 		url := "http://" + target

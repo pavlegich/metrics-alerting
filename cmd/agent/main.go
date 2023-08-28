@@ -93,7 +93,7 @@ func metricsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.
 				close(c)
 			}
 		case <-tickerReport.C:
-			if err := st.Send(addr); err != nil {
+			if err := st.SendGZIP(addr); err != nil {
 				log.Fatal(err)
 				close(c)
 			}
