@@ -29,7 +29,7 @@ func main() {
 	statsStorage := agent.NewStatStorage()
 
 	// Пауза для ожидания запуска сервера
-	// time.Sleep(time.Duration(2) * time.Second)
+	time.Sleep(time.Duration(2) * time.Second)
 
 	c := make(chan int)
 	// Периодический опрос и отправка метрик
