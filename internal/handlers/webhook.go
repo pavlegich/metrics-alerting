@@ -27,21 +27,21 @@ func NewWebhook(memStorage interfaces.MetricStorage) *Webhook {
 
 func (h *Webhook) Route() *chi.Mux {
 	r := chi.NewRouter()
-	r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandleMain())))
+	r.Handle("/", middlewares.WithLogging(middlewares.WithCompressing(h.HandleMain())))
 	r.Route("/value", func(r chi.Router) {
-		r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandlePostValue())))
+		r.Handle("/", middlewares.WithLogging(middlewares.WithCompressing(h.HandlePostValue())))
 		r.Route("/{metricType}", func(r chi.Router) {
-			r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandleBadRequest())))
-			r.Handle("/{metricName}", middlewares.WithLogging(middlewares.GZIP(h.HandleGetMetric())))
+			r.Handle("/", middlewares.WithLogging(middlewares.WithCompressing(h.HandleBadRequest())))
+			r.Handle("/{metricName}", middlewares.WithLogging(middlewares.WithCompressing(h.HandleGetMetric())))
 		})
 	})
 	r.Route("/update", func(r chi.Router) {
-		r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandlePostUpdate())))
+		r.Handle("/", middlewares.WithLogging(middlewares.WithCompressing(h.HandlePostUpdate())))
 		r.Route("/{metricType}", func(r chi.Router) {
-			r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandleNotFound())))
+			r.Handle("/", middlewares.WithLogging(middlewares.WithCompressing(h.HandleNotFound())))
 			r.Route("/{metricName}", func(r chi.Router) {
-				r.Handle("/", middlewares.WithLogging(middlewares.GZIP(h.HandleNotFound())))
-				r.Handle("/{metricValue}", middlewares.WithLogging(middlewares.GZIP(h.HandlePostMetric())))
+				r.Handle("/", middlewares.WithLogging(middlewares.WithCompressing(h.HandleNotFound())))
+				r.Handle("/{metricValue}", middlewares.WithLogging(middlewares.WithCompressing(h.HandlePostMetric())))
 			})
 		})
 	})
@@ -186,6 +186,8 @@ func (h *Webhook) HandlePostUpdate() http.Handler {
 			metricValue = fmt.Sprintf("%v", *req.Delta)
 		}
 
+		fmt.Println(metricType, metricName, metricValue)
+
 		status := h.MemStorage.Put(metricType, metricName, metricValue)
 		if status != http.StatusOK {
 			logger.Log.Error("metric put error")
@@ -256,6 +258,7 @@ func (h *Webhook) HandlePostValue() http.Handler {
 			return
 		}
 		fmt.Println(h.MemStorage.GetAll())
+
 		var req models.Metrics
 
 		// десериализуем запрос в структуру модели
@@ -288,6 +291,8 @@ func (h *Webhook) HandlePostValue() http.Handler {
 			return
 		}
 		metricName := req.ID
+
+		fmt.Println(metricType, metricName)
 
 		// заполняем модель ответа
 		metricValue, status := h.MemStorage.Get(metricType, metricName)

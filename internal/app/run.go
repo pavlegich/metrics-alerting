@@ -73,13 +73,8 @@ func Run() error {
 
 	// Загрузка данных из файла
 	if *Restore {
-		fileReader, err := storage.NewFileReader(*StoragePath)
-		if err != nil {
-			return err
-		}
-		defer fileReader.Close()
-
-		memStorage, err = fileReader.ReadMemStorage()
+		var err error
+		memStorage, err = storage.LoadStorage(*StoragePath)
 		if err != nil {
 			return err
 		}
@@ -95,21 +90,15 @@ func Run() error {
 	r := chi.NewRouter()
 	r.Use(middlewares.Recovery)
 	r.Mount("/", webhook.Route())
+
 	logger.Log.Info("Running server", zap.String("address", addr.String()))
 
 	return http.ListenAndServe(addr.String(), r)
 }
 
 func storeMetricsRoutine(wh *handlers.Webhook, store time.Duration, path string) error {
-
-	fileWriter, err := storage.NewFileWriter(path)
-	if err != nil {
-		return err
-	}
-	defer fileWriter.Close()
-
 	for {
-		if err := fileWriter.WriteMemStorage(&wh.MemStorage); err != nil {
+		if err := storage.SaveStorage(path, &wh.MemStorage); err != nil {
 			return err
 		}
 		time.Sleep(store)

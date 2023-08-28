@@ -5,10 +5,9 @@ import (
 	"strings"
 
 	"github.com/pavlegich/metrics-alerting/internal/compress"
-	"github.com/pavlegich/metrics-alerting/internal/logger"
 )
 
-func GZIP(h http.Handler) http.Handler {
+func WithCompressing(h http.Handler) http.Handler {
 	gzipFn := func(w http.ResponseWriter, r *http.Request) {
 		// по умолчанию устанавливаем оригинальный http.ResponseWriter как тот,
 		// который будем передавать следующей функции
@@ -40,7 +39,6 @@ func GZIP(h http.Handler) http.Handler {
 			r.Body = cr
 			defer cr.Close()
 		}
-		logger.Log.Info("middleware gzip")
 
 		// передаём управление хендлеру
 		h.ServeHTTP(ow, r)

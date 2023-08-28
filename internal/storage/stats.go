@@ -92,6 +92,7 @@ func (st *StatStorage) Send(url string) error {
 		if err != nil {
 			return err
 		}
+
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(req))
 		if err != nil {
 			return err
@@ -110,6 +111,8 @@ func (st *StatStorage) SendGZIP(url string) error {
 		if err != nil {
 			return err
 		}
+
+		fmt.Println(req)
 
 		buf := bytes.NewBuffer(nil)
 		zb := gzip.NewWriter(buf)
