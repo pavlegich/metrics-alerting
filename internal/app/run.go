@@ -49,7 +49,7 @@ func Run() error {
 	webhook := handlers.NewWebhook(memStorage)
 
 	if cfg.StoragePath != "" {
-		go storeMetricsRoutine(webhook, storeInterval, cfg.StoragePath)
+		go server.MetricsRoutine(webhook, storeInterval, cfg.StoragePath)
 	}
 
 	r := chi.NewRouter()
@@ -59,13 +59,4 @@ func Run() error {
 	logger.Log.Info("Running server", zap.String("address", cfg.Address))
 
 	return http.ListenAndServe(cfg.Address, r)
-}
-
-func storeMetricsRoutine(wh *handlers.Webhook, store time.Duration, path string) error {
-	for {
-		if err := storage.SaveStorage(path, &wh.MemStorage); err != nil {
-			return err
-		}
-		time.Sleep(store)
-	}
 }
