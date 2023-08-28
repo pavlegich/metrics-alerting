@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/agent"
@@ -11,7 +10,7 @@ import (
 func main() {
 	// Инициализация логера
 	if err := logger.Initialize("Info"); err != nil {
-		log.Fatalln(err)
+		logger.Log.Info("logger initialization error")
 	}
 	defer logger.Log.Sync()
 
@@ -29,9 +28,7 @@ func main() {
 	statsStorage := agent.NewStatStorage()
 
 	// Пауза для ожидания запуска сервера
-	// time.Sleep(time.Duration(3) * time.Second)
-
-	logger.Log.Info("agent is set")
+	time.Sleep(time.Duration(3) * time.Second)
 
 	c := make(chan int)
 	// Периодический опрос и отправка метрик

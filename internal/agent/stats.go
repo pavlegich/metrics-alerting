@@ -131,7 +131,6 @@ func (st *StatStorage) SendGZIP(url string) error {
 			return err
 		}
 
-		fmt.Println(url)
 		r, err := http.NewRequest(http.MethodPost, url, buf)
 		if err != nil {
 			return err

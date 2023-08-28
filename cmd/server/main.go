@@ -8,7 +8,7 @@ import (
 
 func main() {
 	if err := app.Run(); err != nil {
-		logger.Log.Fatal(err.Error(),
+		logger.Log.Error(err.Error(),
 			zap.String("event", "start server"),
 		)
 	}

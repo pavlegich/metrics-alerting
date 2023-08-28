@@ -15,17 +15,20 @@ import (
 
 // функция run запускает сервер
 func Run() error {
+	logger.Log.Info("logger initialization")
 	if err := logger.Initialize("Info"); err != nil {
 		return err
 	}
 	defer logger.Log.Sync()
 
+	logger.Log.Info("flags parse")
 	// Считывание флагов
 	cfg, err := server.ParseFlags()
 	if err != nil {
 		logger.Log.Info("parse flags error")
 	}
 
+	logger.Log.Info("intervals set")
 	var storeInterval time.Duration
 	if cfg.StoreInterval == 0 {
 		storeInterval = time.Duration(1) * time.Second
@@ -33,9 +36,11 @@ func Run() error {
 		storeInterval = time.Duration(cfg.StoreInterval) * time.Second
 	}
 
+	logger.Log.Info("storage creating")
 	// Создание хранилища метрик
 	memStorage := storage.NewMemStorage()
 
+	logger.Log.Info("load storage")
 	// Загрузка данных из файла
 	if cfg.Restore {
 		var err error
@@ -48,10 +53,12 @@ func Run() error {
 	// Создание нового хендлера для сервера
 	webhook := handlers.NewWebhook(memStorage)
 
+	logger.Log.Info("metrics routine")
 	if cfg.StoragePath != "" {
 		go server.MetricsRoutine(webhook, storeInterval, cfg.StoragePath)
 	}
 
+	logger.Log.Info("new router")
 	r := chi.NewRouter()
 	r.Use(middlewares.Recovery)
 	r.Mount("/", webhook.Route())
