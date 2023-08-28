@@ -32,12 +32,12 @@ func StatsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Du
 
 			// Опрос метрик
 			if err := st.Update(memStats, pollCount, randomValue); err != nil {
-				log.Fatal(err)
+				log.Println(err)
 				close(c)
 			}
 		case <-tickerReport.C:
-			if err := st.SendGZIP(addr); err != nil {
-				log.Fatal(err)
+			if err := st.Send(addr); err != nil {
+				log.Println(err)
 				close(c)
 			}
 

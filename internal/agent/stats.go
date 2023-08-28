@@ -97,6 +97,14 @@ func (st *StatStorage) Send(url string) error {
 		if err != nil {
 			return err
 		}
+
+		// respDump, err := httputil.DumpResponse(resp, true)
+		// if err != nil {
+		// 	log.Println(err)
+		// }
+
+		// fmt.Printf("RESPONSE:\n%s", string(respDump))
+
 		resp.Body.Close()
 	}
 	return nil
@@ -134,6 +142,7 @@ func (st *StatStorage) SendGZIP(url string) error {
 		if err != nil {
 			return err
 		}
+
 		resp.Body.Close()
 	}
 	return nil
