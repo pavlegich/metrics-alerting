@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -23,7 +24,7 @@ func Run() error {
 	// Считывание флагов
 	cfg, err := server.ParseFlags()
 	if err != nil {
-		logger.Log.Info("parse flags error")
+		return fmt.Errorf("Run: parse flags error %w", err)
 	}
 
 	var storeInterval time.Duration
@@ -42,7 +43,7 @@ func Run() error {
 	// Загрузка данных из файла
 	if cfg.Restore {
 		if err := storage.Load(cfg.StoragePath, webhook.MemStorage); err != nil {
-			return err
+			return fmt.Errorf("Run: restore storage from file %w", err)
 		}
 	}
 

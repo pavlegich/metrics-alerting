@@ -8,8 +8,8 @@ import (
 
 func main() {
 	if err := app.Run(); err != nil {
-		logger.Log.Error(err.Error(),
-			zap.String("event", "start server"),
+		logger.Log.Error("main: run app error",
+			zap.Error(err),
 		)
 	}
 }

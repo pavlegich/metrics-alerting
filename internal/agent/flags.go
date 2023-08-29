@@ -2,6 +2,7 @@ package agent
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/caarlos0/env/v6"
 )
@@ -22,7 +23,7 @@ func ParseFlags() (*Config, error) {
 	flag.Parse()
 
 	if err := env.Parse(cfg); err != nil {
-		return cfg, err
+		return cfg, fmt.Errorf("ParseFlags: environment values not parsed %w", err)
 	}
 
 	return cfg, nil

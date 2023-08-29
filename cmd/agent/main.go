@@ -5,19 +5,20 @@ import (
 
 	"github.com/pavlegich/metrics-alerting/internal/agent"
 	"github.com/pavlegich/metrics-alerting/internal/logger"
+	"go.uber.org/zap"
 )
 
 func main() {
 	// Инициализация логера
 	if err := logger.Initialize("Info"); err != nil {
-		logger.Log.Info("logger initialization error")
+		logger.Log.Error("main: logger initialization error", zap.Error(err))
 	}
 	defer logger.Log.Sync()
 
 	// Парсинг флагов
 	cfg, err := agent.ParseFlags()
 	if err != nil {
-		logger.Log.Info("parse flags error")
+		logger.Log.Error("main: parse flags error", zap.Error(err))
 	}
 
 	// Интервалы опроса и отправки метрик
@@ -36,6 +37,7 @@ func main() {
 	for {
 		_, ok := <-c
 		if !ok {
+			logger.Log.Info("routine channel is closed; exit")
 			break // exit
 		}
 	}

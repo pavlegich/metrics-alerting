@@ -1,12 +1,13 @@
 package agent
 
 import (
-	"log"
 	"math/rand"
 	"runtime"
 	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
+	"github.com/pavlegich/metrics-alerting/internal/logger"
+	"go.uber.org/zap"
 )
 
 func StatsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Duration, addr string, c chan int) {
@@ -32,13 +33,11 @@ func StatsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Du
 
 			// Опрос метрик
 			if err := st.Update(memStats, pollCount, randomValue); err != nil {
-				log.Println(err)
-				// close(c)
+				logger.Log.Error("StatsRoutine: stats update", zap.Error(err))
 			}
 		case <-tickerReport.C:
 			if err := st.SendGZIP(addr); err != nil {
-				log.Println(err)
-				// close(c)
+				logger.Log.Error("StatsRoutine: send compressed stats", zap.Error(err))
 			}
 
 		}

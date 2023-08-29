@@ -12,7 +12,7 @@ func Recovery(next http.Handler) http.Handler {
 		defer func() {
 			err := recover()
 			if err != nil {
-				logger.Log.Info("server panic",
+				logger.Log.Error("server panic",
 					zap.Any("error", err),
 				)
 

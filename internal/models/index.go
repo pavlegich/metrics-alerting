@@ -15,7 +15,7 @@ type (
 )
 
 func NewTable() *Table {
-	return &Table{}
+	return &Table{make([]Row, 0)}
 }
 
 func (d *Table) Put(mName string, mValue string) {

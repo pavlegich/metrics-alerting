@@ -27,7 +27,7 @@ func (st *StatStorage) Put(sType string, name string, value string) error {
 	case "gauge":
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			return err
+			return fmt.Errorf("Put: parse float64 gauge %w", err)
 		}
 		st.stats[name] = models.Metrics{
 			ID:    name,
@@ -37,7 +37,7 @@ func (st *StatStorage) Put(sType string, name string, value string) error {
 	case "counter":
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			return err
+			return fmt.Errorf("Put: parse int64 counter %w", err)
 		}
 		st.stats[name] = models.Metrics{
 			ID:    name,
@@ -91,12 +91,12 @@ func (st *StatStorage) Send(url string) error {
 
 		req, err := json.Marshal(stat)
 		if err != nil {
-			return err
+			return fmt.Errorf("Send: request marshal %w", err)
 		}
 
 		resp, err := http.Post(url, "application/json", bytes.NewBuffer(req))
 		if err != nil {
-			return err
+			return fmt.Errorf("Send: response post %w", err)
 		}
 
 		// respDump, err := httputil.DumpResponse(resp, true)
@@ -119,13 +119,13 @@ func (st *StatStorage) SendGZIP(url string) error {
 
 		req, err := json.Marshal(stat)
 		if err != nil {
-			return err
+			return fmt.Errorf("SendGZIP: request marshal %w", err)
 		}
 
 		buf := bytes.NewBuffer(nil)
 		zb := gzip.NewWriter(buf)
 		if _, err := zb.Write(req); err != nil {
-			return err
+			return fmt.Errorf("SendGZIP: write request into buffer %w", err)
 		}
 		if err = zb.Close(); err != nil {
 			return err
@@ -133,7 +133,7 @@ func (st *StatStorage) SendGZIP(url string) error {
 
 		r, err := http.NewRequest(http.MethodPost, url, buf)
 		if err != nil {
-			return err
+			return fmt.Errorf("SendGZIP: new post request %w", err)
 		}
 
 		r.Header.Set("Content-Encoding", "gzip")
@@ -142,7 +142,7 @@ func (st *StatStorage) SendGZIP(url string) error {
 
 		resp, err := http.DefaultClient.Do(r)
 		if err != nil {
-			return err
+			return fmt.Errorf("SendGZIP: response get %w", err)
 		}
 
 		resp.Body.Close()
