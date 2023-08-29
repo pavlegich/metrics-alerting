@@ -1,30 +1,52 @@
-package storage
+package agent
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"runtime"
-	"strings"
+	"strconv"
 
 	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
 type StatStorage struct {
-	stats map[string]models.Stat
+	stats map[string]models.Metrics
 }
 
 func NewStatStorage() *StatStorage {
 	return &StatStorage{
-		stats: make(map[string]models.Stat),
+		stats: make(map[string]models.Metrics),
 	}
 }
 
-func (st *StatStorage) Put(sType string, name string, value string) {
-	st.stats[name] = models.Stat{
-		Type:  sType,
-		Name:  name,
-		Value: value,
+func (st *StatStorage) Put(sType string, name string, value string) error {
+	switch sType {
+	case "gauge":
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("Put: parse float64 gauge %w", err)
+		}
+		st.stats[name] = models.Metrics{
+			ID:    name,
+			MType: sType,
+			Value: &v,
+		}
+	case "counter":
+		v, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return fmt.Errorf("Put: parse int64 counter %w", err)
+		}
+		st.stats[name] = models.Metrics{
+			ID:    name,
+			MType: sType,
+			Delta: &v,
+		}
 	}
+
+	return nil
 }
 
 func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64) error {
@@ -63,14 +85,66 @@ func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64
 }
 
 func (st *StatStorage) Send(url string) error {
+	for _, stat := range st.stats {
+		target := url + "/update/"
+		url := "http://" + target
+
+		req, err := json.Marshal(stat)
+		if err != nil {
+			return fmt.Errorf("Send: request marshal %w", err)
+		}
+
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(req))
+		if err != nil {
+			return fmt.Errorf("Send: response post %w", err)
+		}
+
+		// respDump, err := httputil.DumpResponse(resp, true)
+		// if err != nil {
+		// 	log.Println(err)
+		// }
+
+		// fmt.Printf("RESPONSE:\n%s", string(respDump))
+
+		resp.Body.Close()
+	}
+	return nil
+}
+
+func (st *StatStorage) SendGZIP(url string) error {
 
 	for _, stat := range st.stats {
-		target := strings.Join([]string{url, "update", stat.Type, stat.Name, stat.Value}, "/")
+		target := url + "/update/"
 		url := "http://" + target
-		resp, err := http.Post(url, "", nil)
+
+		req, err := json.Marshal(stat)
 		if err != nil {
+			return fmt.Errorf("SendGZIP: request marshal %w", err)
+		}
+
+		buf := bytes.NewBuffer(nil)
+		zb := gzip.NewWriter(buf)
+		if _, err := zb.Write(req); err != nil {
+			return fmt.Errorf("SendGZIP: write request into buffer %w", err)
+		}
+		if err = zb.Close(); err != nil {
 			return err
 		}
+
+		r, err := http.NewRequest(http.MethodPost, url, buf)
+		if err != nil {
+			return fmt.Errorf("SendGZIP: new post request %w", err)
+		}
+
+		r.Header.Set("Content-Encoding", "gzip")
+		r.Header.Set("Accept-Encoding", "gzip")
+		r.Header.Set("Content-Type", "application/json")
+
+		resp, err := http.DefaultClient.Do(r)
+		if err != nil {
+			return fmt.Errorf("SendGZIP: response get %w", err)
+		}
+
 		resp.Body.Close()
 	}
 	return nil

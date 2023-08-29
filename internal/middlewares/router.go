@@ -3,7 +3,8 @@ package middlewares
 import (
 	"net/http"
 
-	"log"
+	"github.com/pavlegich/metrics-alerting/internal/logger"
+	"go.uber.org/zap"
 )
 
 func Recovery(next http.Handler) http.Handler {
@@ -11,9 +12,11 @@ func Recovery(next http.Handler) http.Handler {
 		defer func() {
 			err := recover()
 			if err != nil {
-				log.Println(err)
+				logger.Log.Error("server panic",
+					zap.Any("error", err),
+				)
 
-				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				w.Header().Set("Content-Type", "text/plain")
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}()

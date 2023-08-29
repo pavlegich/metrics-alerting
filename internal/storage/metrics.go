@@ -14,7 +14,9 @@ type (
 
 // метод Update обновляет хранилище данных в зависимости от запроса
 func (ms *MemStorage) Put(metricType string, metricName string, metricValue string) int {
-
+	if metricName == "" {
+		return http.StatusNotFound
+	}
 	switch metricType {
 	case "gauge":
 		if _, err := strconv.ParseFloat(metricValue, 64); err != nil {
@@ -51,8 +53,8 @@ func NewMemStorage() *MemStorage {
 	return &MemStorage{make(map[string]string)}
 }
 
-func (ms *MemStorage) GetAll() map[string]string {
-	return ms.Metrics
+func (ms *MemStorage) GetAll() (map[string]string, int) {
+	return ms.Metrics, http.StatusOK
 }
 
 func (ms *MemStorage) Get(metricType string, metricName string) (string, int) {
