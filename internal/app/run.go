@@ -41,7 +41,7 @@ func Run() error {
 
 	// Загрузка данных из файла
 	if cfg.Restore {
-		if err := storage.Load(cfg.StoragePath, &webhook.MemStorage); err != nil {
+		if err := storage.Load(cfg.StoragePath, webhook.MemStorage); err != nil {
 			return err
 		}
 	}

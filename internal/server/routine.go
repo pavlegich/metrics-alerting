@@ -9,7 +9,7 @@ import (
 
 func MetricsRoutine(wh *handlers.Webhook, store time.Duration, path string) error {
 	for {
-		if err := storage.Save(path, &wh.MemStorage); err != nil {
+		if err := storage.Save(path, wh.MemStorage); err != nil {
 			return err
 		}
 		time.Sleep(store)
