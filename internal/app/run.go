@@ -1,11 +1,13 @@
 package app
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/handlers"
 	"github.com/pavlegich/metrics-alerting/internal/logger"
 	"github.com/pavlegich/metrics-alerting/internal/middlewares"
@@ -37,8 +39,19 @@ func Run() error {
 	// Создание хранилища метрик
 	memStorage := storage.NewMemStorage()
 
+	// Инициализация базы данных
+	if cfg.Database == "" {
+		return fmt.Errorf("Run: wrong database address %w", err)
+	}
+	ps := fmt.Sprintf(cfg.Database)
+	db, err := sql.Open("pgx", ps)
+	if err != nil {
+		return fmt.Errorf("Run: couldn't open database %w", err)
+	}
+	defer db.Close()
+
 	// Создание нового хендлера для сервера
-	webhook := handlers.NewWebhook(memStorage)
+	webhook := handlers.NewWebhook(memStorage, db)
 
 	// Загрузка данных из файла
 	if cfg.Restore {

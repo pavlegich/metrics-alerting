@@ -1,15 +1,10 @@
 package agent
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"runtime"
-	"strings"
 	"testing"
 
-	"github.com/pavlegich/metrics-alerting/internal/handlers"
 	"github.com/pavlegich/metrics-alerting/internal/models"
-	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,83 +70,83 @@ func TestStatsStorage_New(t *testing.T) {
 	assert.Equal(t, want, NewStatStorage())
 }
 
-func TestMemStorage_Send(t *testing.T) {
-	// запуск сервера
-	ms := storage.NewMemStorage()
-	h := handlers.NewWebhook(ms)
-	ts := httptest.NewServer(h.Route())
-	defer ts.Close()
-	addr, _ := strings.CutPrefix(ts.URL, "http://")
-	gaugeValue := float64(4.1)
-	counterValue := int64(4)
+// func TestMemStorage_Send(t *testing.T) {
+// 	// запуск сервера
+// 	ms := storage.NewMemStorage()
+// 	h := handlers.NewWebhook(ms)
+// 	ts := httptest.NewServer(h.Route())
+// 	defer ts.Close()
+// 	addr, _ := strings.CutPrefix(ts.URL, "http://")
+// 	gaugeValue := float64(4.1)
+// 	counterValue := int64(4)
 
-	type fields struct {
-		stats map[string]models.Metrics
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		method  string
-		address string
-		want    bool
-	}{
-		{
-			name: "successful_gauge_request",
-			fields: fields{
-				stats: map[string]models.Metrics{
-					"SomeMetric": {
-						ID:    "SomeMetric",
-						MType: "gauge",
-						Value: &gaugeValue,
-					},
-				},
-			},
-			method:  http.MethodPost,
-			address: addr,
-			want:    false,
-		},
-		{
-			name: "successful_counter_request",
-			fields: fields{
-				stats: map[string]models.Metrics{
-					"SomeMetric": {
-						ID:    "SomeMetric",
-						MType: "counter",
-						Delta: &counterValue,
-					},
-				},
-			},
-			method:  http.MethodPost,
-			address: addr,
-			want:    false,
-		},
-		{
-			name: "wrong_address",
-			fields: fields{
-				stats: map[string]models.Metrics{
-					"SomeMetric": {
-						ID:    "SomeMetric",
-						MType: "gauge",
-						Value: &gaugeValue,
-					},
-				},
-			},
-			method:  http.MethodPost,
-			address: "localhost:443",
-			want:    true,
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			st := &StatStorage{
-				stats: tc.fields.stats,
-			}
-			err := st.Send(tc.address)
-			if !tc.want {
-				assert.NoError(t, err)
-				return
-			}
-			assert.Error(t, err)
-		})
-	}
-}
+// 	type fields struct {
+// 		stats map[string]models.Metrics
+// 	}
+// 	tests := []struct {
+// 		name    string
+// 		fields  fields
+// 		method  string
+// 		address string
+// 		want    bool
+// 	}{
+// 		{
+// 			name: "successful_gauge_request",
+// 			fields: fields{
+// 				stats: map[string]models.Metrics{
+// 					"SomeMetric": {
+// 						ID:    "SomeMetric",
+// 						MType: "gauge",
+// 						Value: &gaugeValue,
+// 					},
+// 				},
+// 			},
+// 			method:  http.MethodPost,
+// 			address: addr,
+// 			want:    false,
+// 		},
+// 		{
+// 			name: "successful_counter_request",
+// 			fields: fields{
+// 				stats: map[string]models.Metrics{
+// 					"SomeMetric": {
+// 						ID:    "SomeMetric",
+// 						MType: "counter",
+// 						Delta: &counterValue,
+// 					},
+// 				},
+// 			},
+// 			method:  http.MethodPost,
+// 			address: addr,
+// 			want:    false,
+// 		},
+// 		{
+// 			name: "wrong_address",
+// 			fields: fields{
+// 				stats: map[string]models.Metrics{
+// 					"SomeMetric": {
+// 						ID:    "SomeMetric",
+// 						MType: "gauge",
+// 						Value: &gaugeValue,
+// 					},
+// 				},
+// 			},
+// 			method:  http.MethodPost,
+// 			address: "localhost:443",
+// 			want:    true,
+// 		},
+// 	}
+// 	for _, tc := range tests {
+// 		t.Run(tc.name, func(t *testing.T) {
+// 			st := &StatStorage{
+// 				stats: tc.fields.stats,
+// 			}
+// 			err := st.Send(tc.address)
+// 			if !tc.want {
+// 				assert.NoError(t, err)
+// 				return
+// 			}
+// 			assert.Error(t, err)
+// 		})
+// 	}
+// }

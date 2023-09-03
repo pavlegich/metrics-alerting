@@ -12,6 +12,7 @@ type Config struct {
 	StoreInterval int    `env:"STORE_INTERVAL"`
 	StoragePath   string `env:"FILE_STORAGE_PATH"`
 	Restore       bool   `env:"RESTORE"`
+	Database      string `env:"DATABASE_DSN"`
 }
 
 func ParseFlags() (*Config, error) {
@@ -21,6 +22,7 @@ func ParseFlags() (*Config, error) {
 	flag.IntVar(&cfg.StoreInterval, "i", 300, "Frequency of storing on disk")
 	flag.StringVar(&cfg.StoragePath, "f", "/tmp/metrics-db.json", "Full path of values storage")
 	flag.BoolVar(&cfg.Restore, "r", true, "Restore values from the disk")
+	flag.StringVar(&cfg.Database, "d", "", "Address to DB")
 
 	flag.Parse()
 
