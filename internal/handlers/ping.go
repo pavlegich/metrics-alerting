@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/pavlegich/metrics-alerting/internal/logger"
@@ -9,11 +8,7 @@ import (
 )
 
 func (h *Webhook) HandlePing(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	if err := h.Database.PingContext(ctx); err != nil {
-		cancel()
+	if err := h.Database.Ping(); err != nil {
 		logger.Log.Error("HandlePing: connection with database is died", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
