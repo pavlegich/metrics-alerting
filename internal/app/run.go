@@ -44,7 +44,6 @@ func Run() error {
 		return fmt.Errorf("Run: wrong database address %w", err)
 	}
 	ps := fmt.Sprintf(cfg.Database)
-	fmt.Println("database_dsn:", ps)
 	db, err := sql.Open("pgx", ps)
 	if err != nil {
 		return fmt.Errorf("Run: couldn't open database %w", err)
