@@ -1,14 +1,19 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/logger"
 	"go.uber.org/zap"
 )
 
 func (h *Webhook) HandlePing(w http.ResponseWriter, r *http.Request) {
-	if err := h.Database.Ping(); err != nil {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	if err := h.Database.PingContext(ctx); err != nil {
 		logger.Log.Error("HandlePing: connection with database is died", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
