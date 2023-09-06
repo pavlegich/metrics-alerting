@@ -29,6 +29,7 @@ func Run() error {
 		return fmt.Errorf("Run: parse flags error %w", err)
 	}
 
+	// Установка интервалов
 	var storeInterval time.Duration
 	if cfg.StoreInterval == 0 {
 		storeInterval = time.Duration(1) * time.Second
@@ -40,28 +41,29 @@ func Run() error {
 	memStorage := storage.NewMemStorage()
 
 	// Инициализация базы данных
-	if cfg.Database == "" {
-		return fmt.Errorf("Run: wrong database address %w", err)
+	var db *sql.DB
+	if cfg.Database != "" {
+		db, err = storage.NewDatabase(cfg.Database)
+		if err != nil {
+			return fmt.Errorf("Run: database open failed %w", err)
+		}
 	}
-	ps := fmt.Sprintf(cfg.Database)
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		return fmt.Errorf("Run: couldn't open database %w", err)
-	}
-	defer db.Close()
 
 	// Создание нового хендлера для сервера
 	webhook := handlers.NewWebhook(memStorage, db)
 
 	// Загрузка данных из файла
 	if cfg.Restore {
-		if err := storage.Load(cfg.StoragePath, webhook.MemStorage); err != nil {
+		if err := storage.LoadFromFile(cfg.StoragePath, webhook.MemStorage); err != nil {
 			return fmt.Errorf("Run: restore storage from file %w", err)
 		}
 	}
 
-	if cfg.StoragePath != "" {
-		go server.MetricsRoutine(webhook, storeInterval, cfg.StoragePath)
+	// Хранение данных в базе данных или файле
+	if cfg.Database != "" {
+		go server.SaveToDBRoutine(webhook, storeInterval)
+	} else if cfg.StoragePath != "" {
+		go server.SaveToFileRoutine(webhook, storeInterval, cfg.StoragePath)
 	}
 
 	r := chi.NewRouter()
