@@ -1,7 +1,6 @@
 package app
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
@@ -41,13 +40,11 @@ func Run() error {
 	memStorage := storage.NewMemStorage()
 
 	// Инициализация базы данных
-	var db *sql.DB
-	if cfg.Database != "" {
-		db, err = storage.NewDatabase(cfg.Database)
-		if err != nil {
-			return fmt.Errorf("Run: database open failed %w", err)
-		}
+	db, err := storage.NewDatabase(cfg.Database)
+	if err != nil {
+		return fmt.Errorf("Run: database open failed %w", err)
 	}
+	defer db.Close()
 
 	// Создание нового хендлера для сервера
 	webhook := handlers.NewWebhook(memStorage, db)
@@ -62,7 +59,8 @@ func Run() error {
 	// Хранение данных в базе данных или файле
 	if cfg.Database != "" {
 		go server.SaveToDBRoutine(webhook, storeInterval)
-	} else if cfg.StoragePath != "" {
+	}
+	if cfg.StoragePath != "" {
 		go server.SaveToFileRoutine(webhook, storeInterval, cfg.StoragePath)
 	}
 
