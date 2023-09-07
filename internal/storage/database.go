@@ -48,7 +48,7 @@ func SaveToDB(db *sql.DB, ms interfaces.MetricStorage) error {
 	statement, err := db.Prepare("INSERT INTO storage (id, value) VALUES ($1, $2) ON CONFLICT (id) DO " +
 		"UPDATE SET value=$2 WHERE storage.id=$1")
 	if err != nil {
-		return fmt.Errorf("SaveToDB: prepare insert statement failed %w", err)
+		return fmt.Errorf("SaveToDB: insert into table failed %w", err)
 	}
 	defer statement.Close()
 
