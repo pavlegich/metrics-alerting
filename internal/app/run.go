@@ -64,10 +64,10 @@ func Run() error {
 	}
 
 	// Хранение данных в базе данных или файле
-	if cfg.Database != "" {
+	switch {
+	case cfg.Database != "":
 		go server.SaveToDBRoutine(webhook, storeInterval)
-	}
-	if cfg.StoragePath != "" {
+	case cfg.StoragePath != "":
 		go server.SaveToFileRoutine(webhook, storeInterval, cfg.StoragePath)
 	}
 
