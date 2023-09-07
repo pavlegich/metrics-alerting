@@ -11,7 +11,7 @@ import (
 )
 
 type DBMetric struct {
-	Id    string
+	ID    string
 	Value string
 }
 
@@ -89,18 +89,24 @@ func LoadFromDB(db *sql.DB, ms interfaces.MetricStorage) error {
 	DBMetrics := make([]DBMetric, 0)
 	for rows.Next() {
 		var metric DBMetric
-		err = rows.Scan(&metric.Id, &metric.Value)
+		err = rows.Scan(&metric.ID, &metric.Value)
 		if err != nil {
 			return fmt.Errorf("LoadFromDB: scan row failed %w", err)
 		}
 		DBMetrics = append(DBMetrics, metric)
 	}
 
+	err = rows.Err()
+	if err != nil {
+		return fmt.Errorf("LoadFromDB: rows.Err %w", err)
+	}
+
+	// Сохранение данных в локальном хранилище
 	for _, metric := range DBMetrics {
 		// Сейчас все пусть будут gauge, чтобы ошибок с конвертацией не было, он не записывает тип в storage
 		// Впоследствии сделаю, чтобы в storage хранились отдельно gauge и counter, не все string
-		if status := ms.Put("gauge", metric.Id, metric.Value); status != http.StatusOK {
-			return fmt.Errorf("LoadFromDB: get all metrics status %v", status)
+		if status := ms.Put("gauge", metric.ID, metric.Value); status != http.StatusOK {
+			return fmt.Errorf("LoadFromDB: put all metrics status %v", status)
 		}
 	}
 
