@@ -42,7 +42,7 @@ func Run() error {
 	// Инициализация базы данных
 	db, err := storage.NewDatabase(cfg.Database)
 	if err != nil {
-		return fmt.Errorf("Run: database open failed %w", err)
+		logger.Log.Error("Run: database open failed", zap.Error(err))
 	}
 	defer db.Close()
 
@@ -52,7 +52,7 @@ func Run() error {
 	// Загрузка данных из файла
 	if cfg.Restore {
 		if err := storage.LoadFromFile(cfg.StoragePath, webhook.MemStorage); err != nil {
-			return fmt.Errorf("Run: restore storage from file %w", err)
+			logger.Log.Error("Run: restore storage from file failed", zap.Error(err))
 		}
 	}
 

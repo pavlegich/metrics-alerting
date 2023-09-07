@@ -41,8 +41,7 @@ func SaveToDB(db *sql.DB, ms interfaces.MetricStorage) error {
 		return fmt.Errorf("SaveToDB: connection to database is died %w", err)
 	}
 
-	_, err := db.Exec("CREATE TABLE IF NOT EXISTS storage (id text PRIMARY KEY, value text NOT NULL);")
-	if err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS storage (id text PRIMARY KEY, value text NOT NULL);"); err != nil {
 		return fmt.Errorf("SaveToDB: couldn't create table %w", err)
 	}
 

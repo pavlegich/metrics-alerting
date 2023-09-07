@@ -13,6 +13,12 @@ func (h *Webhook) HandlePing(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
+	if h.Database == nil {
+		logger.Log.Error("HandlePing: database is nil")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	if err := h.Database.PingContext(ctx); err != nil {
 		logger.Log.Error("HandlePing: connection with database is died", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
