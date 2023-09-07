@@ -51,8 +51,15 @@ func Run() error {
 
 	// Загрузка данных из файла
 	if cfg.Restore {
-		if err := storage.LoadFromFile(cfg.StoragePath, webhook.MemStorage); err != nil {
-			logger.Log.Error("Run: restore storage from file failed", zap.Error(err))
+		switch {
+		case cfg.Database != "":
+			if err := storage.LoadFromDB(webhook.Database, webhook.MemStorage); err != nil {
+				logger.Log.Error("Run: restore storage from database failed", zap.Error(err))
+			}
+		case cfg.StoragePath != "":
+			if err := storage.LoadFromFile(cfg.StoragePath, webhook.MemStorage); err != nil {
+				logger.Log.Error("Run: restore storage from file failed", zap.Error(err))
+			}
 		}
 	}
 

@@ -69,7 +69,7 @@ func LoadFromFile(path string, ms interfaces.MetricStorage) error {
 		// Сейчас все пусть будут gauge, чтобы ошибок с конвертацией не было, он не записывает тип в storage
 		// Впоследствии сделаю, чтобы в storage хранились отдельно gauge и counter, не все string
 		if status := ms.Put("gauge", m, v); status != http.StatusOK {
-			return fmt.Errorf("LoadFromFile: get all metrics status %v", status)
+			return fmt.Errorf("LoadFromFile: put metric status %v", status)
 		}
 	}
 
