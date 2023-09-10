@@ -12,6 +12,61 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
+func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
+	req := make([]models.Metrics, 0)
+
+	// десериализуем запрос в структуру модели
+	var buf bytes.Buffer
+
+	_, err := buf.ReadFrom(r.Body)
+	if err != nil {
+		logger.Log.Error("HandlePostUpdates: read body error")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if err := json.Unmarshal(buf.Bytes(), &req); err != nil {
+		logger.Log.Error("HandlePostUpdates: decoding error")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	for _, metric := range req {
+		// проверяем, то пришел запрос понятного типа
+		if metric.MType != "gauge" && metric.MType != "counter" {
+			logger.Log.Error("HandlePostUpdates: unsupported request type")
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		metricType := metric.MType
+
+		// при правильном имени метрики, помещаем метрику в хранилище
+		if metric.ID == "" {
+			logger.Log.Error("HandlePostUpdates: got metric with bad name")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		metricName := metric.ID
+
+		var metricValue string
+		switch metric.MType {
+		case "gauge":
+			metricValue = fmt.Sprintf("%v", *metric.Value)
+		case "counter":
+			metricValue = fmt.Sprintf("%v", *metric.Delta)
+		}
+
+		status := h.MemStorage.Put(metricType, metricName, metricValue)
+		if status != http.StatusOK {
+			logger.Log.Error("HandlePostUpdates: metric put error")
+			w.WriteHeader(status)
+			return
+		}
+	}
+	// установим правильный заголовок для типа данных
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h *Webhook) HandlePostMetric(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
@@ -25,7 +80,6 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 	var req models.Metrics
 
 	// десериализуем запрос в структуру модели
-	logger.Log.Info("decoding request")
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
@@ -62,8 +116,6 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 	case "counter":
 		metricValue = fmt.Sprintf("%v", *req.Delta)
 	}
-
-	// fmt.Println(metricType, metricName, metricValue)
 
 	status := h.MemStorage.Put(metricType, metricName, metricValue)
 	if status != http.StatusOK {

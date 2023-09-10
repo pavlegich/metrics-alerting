@@ -36,6 +36,8 @@ func (h *Webhook) Route() *chi.Mux {
 
 	r.Get("/ping", h.HandlePing)
 
+	r.Post("/updates/", h.HandlePostUpdates)
+
 	r.HandleFunc("/value/{metricType}/", h.HandleBadRequest)
 	r.HandleFunc("/update/{metricType}/", h.HandleNotFound)
 	r.HandleFunc("/update/{metricType}/{metricName}/", h.HandleNotFound)

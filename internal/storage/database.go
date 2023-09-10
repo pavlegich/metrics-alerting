@@ -47,7 +47,9 @@ func SaveToDB(db *sql.DB, ms interfaces.MetricStorage) error {
 	}
 
 	// Создание таблицы при её отсутствии
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS storage (id text PRIMARY KEY, value text NOT NULL);"); err != nil {
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS storage (
+		id text PRIMARY KEY, 
+		value text NOT NULL);`); err != nil {
 		return fmt.Errorf("SaveToDB: couldn't create table %w", err)
 	}
 
@@ -75,7 +77,9 @@ func LoadFromDB(db *sql.DB, ms interfaces.MetricStorage) error {
 	}
 
 	// Создание таблицы при её отсутствии
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS storage (id text PRIMARY KEY, value text NOT NULL);"); err != nil {
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS storage (
+		id text PRIMARY KEY, 
+		value text NOT NULL);`); err != nil {
 		return fmt.Errorf("LoadFromDB: couldn't create table %w", err)
 	}
 

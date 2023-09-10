@@ -36,10 +36,9 @@ func StatsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Du
 				logger.Log.Error("StatsRoutine: stats update", zap.Error(err))
 			}
 		case <-tickerReport.C:
-			if err := st.SendGZIP(addr); err != nil {
+			if err := st.SendBatch(addr); err != nil {
 				logger.Log.Error("StatsRoutine: send compressed stats", zap.Error(err))
 			}
-
 		}
 	}
 }

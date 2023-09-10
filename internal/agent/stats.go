@@ -84,17 +84,59 @@ func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64
 	return nil
 }
 
+func (st *StatStorage) SendBatch(url string) error {
+
+	target := "http://" + url + "/updates/"
+
+	// Подготовка данных
+	stats := make([]models.Metrics, 0)
+	for _, s := range st.stats {
+		stats = append(stats, s)
+	}
+
+	req, err := json.Marshal(stats)
+	if err != nil {
+		return fmt.Errorf("SendBatch: request marshal %w", err)
+	}
+
+	buf := bytes.NewBuffer(nil)
+	zb := gzip.NewWriter(buf)
+	if _, err := zb.Write(req); err != nil {
+		return fmt.Errorf("SendBatch: write request into buffer %w", err)
+	}
+	if err = zb.Close(); err != nil {
+		return err
+	}
+
+	r, err := http.NewRequest(http.MethodPost, target, buf)
+	if err != nil {
+		return fmt.Errorf("SendBatch: new post request %w", err)
+	}
+
+	r.Header.Set("Content-Encoding", "gzip")
+	r.Header.Set("Accept-Encoding", "gzip")
+	r.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+		return fmt.Errorf("SendBatch: response get %w", err)
+	}
+
+	resp.Body.Close()
+
+	return nil
+}
+
 func (st *StatStorage) Send(url string) error {
 	for _, stat := range st.stats {
-		target := url + "/update/"
-		url := "http://" + target
+		target := "http://" + url + "/update/"
 
 		req, err := json.Marshal(stat)
 		if err != nil {
 			return fmt.Errorf("Send: request marshal %w", err)
 		}
 
-		resp, err := http.Post(url, "application/json", bytes.NewBuffer(req))
+		resp, err := http.Post(target, "application/json", bytes.NewBuffer(req))
 		if err != nil {
 			return fmt.Errorf("Send: response post %w", err)
 		}
@@ -114,8 +156,7 @@ func (st *StatStorage) Send(url string) error {
 func (st *StatStorage) SendGZIP(url string) error {
 
 	for _, stat := range st.stats {
-		target := url + "/update/"
-		url := "http://" + target
+		target := "http://" + url + "/update/"
 
 		req, err := json.Marshal(stat)
 		if err != nil {
@@ -131,7 +172,7 @@ func (st *StatStorage) SendGZIP(url string) error {
 			return err
 		}
 
-		r, err := http.NewRequest(http.MethodPost, url, buf)
+		r, err := http.NewRequest(http.MethodPost, target, buf)
 		if err != nil {
 			return fmt.Errorf("SendGZIP: new post request %w", err)
 		}

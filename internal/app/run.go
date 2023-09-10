@@ -1,6 +1,7 @@
 package app
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
@@ -40,11 +41,16 @@ func Run() error {
 	memStorage := storage.NewMemStorage()
 
 	// Инициализация базы данных
-	db, err := storage.NewDatabase(cfg.Database)
-	if err != nil {
-		logger.Log.Error("Run: database open failed", zap.Error(err))
+	var db *sql.DB
+	if cfg.Database != "" {
+		db, err = storage.NewDatabase(cfg.Database)
+		if err != nil {
+			logger.Log.Error("Run: database open failed", zap.Error(err))
+		}
+		defer db.Close()
+	} else {
+		db = nil
 	}
-	defer db.Close()
 
 	// Создание нового хендлера для сервера
 	webhook := handlers.NewWebhook(memStorage, db)
