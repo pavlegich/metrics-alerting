@@ -30,15 +30,19 @@ func main() {
 
 	// Пауза для ожидания запуска сервера
 
-	c := make(chan int)
+	c := make(chan error)
 	// Периодический опрос и отправка метрик
 	go agent.StatsRoutine(statsStorage, pollInterval, reportInterval, cfg.Address, c)
 
 	for {
-		_, ok := <-c
+		err, ok := <-c
 		if !ok {
 			logger.Log.Info("routine channel is closed; exit")
 			break // exit
+		}
+		if err != nil {
+			logger.Log.Error("retriable-error is not nil; exit", zap.Error(err))
+			break
 		}
 	}
 }
