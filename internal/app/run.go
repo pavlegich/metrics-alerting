@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -23,8 +24,10 @@ func Run() error {
 	}
 	defer logger.Log.Sync()
 
+	ctx := context.Background()
+
 	// Считывание флагов
-	cfg, err := server.ParseFlags()
+	cfg, err := server.ParseFlags(ctx)
 	if err != nil {
 		return fmt.Errorf("Run: parse flags error %w", err)
 	}
@@ -38,12 +41,12 @@ func Run() error {
 	}
 
 	// Создание хранилища метрик
-	memStorage := storage.NewMemStorage()
+	memStorage := storage.NewMemStorage(ctx)
 
 	// Инициализация базы данных
 	var db *sql.DB
 	if cfg.Database != "" {
-		db, err = storage.NewDatabase(cfg.Database)
+		db, err = storage.NewDatabase(ctx, cfg.Database)
 		if err != nil {
 			logger.Log.Error("Run: database open failed", zap.Error(err))
 		}
@@ -53,17 +56,17 @@ func Run() error {
 	}
 
 	// Создание нового хендлера для сервера
-	webhook := handlers.NewWebhook(memStorage, db)
+	webhook := handlers.NewWebhook(ctx, memStorage, db)
 
 	// Загрузка данных из файла
 	if cfg.Restore {
 		switch {
 		case cfg.Database != "":
-			if err := storage.LoadFromDB(webhook.Database, webhook.MemStorage); err != nil {
+			if err := storage.LoadFromDB(ctx, webhook.Database, webhook.MemStorage); err != nil {
 				logger.Log.Error("Run: restore storage from database failed", zap.Error(err))
 			}
 		case cfg.StoragePath != "":
-			if err := storage.LoadFromFile(cfg.StoragePath, webhook.MemStorage); err != nil {
+			if err := storage.LoadFromFile(ctx, cfg.StoragePath, webhook.MemStorage); err != nil {
 				logger.Log.Error("Run: restore storage from file failed", zap.Error(err))
 			}
 		}
@@ -72,14 +75,14 @@ func Run() error {
 	// Хранение данных в базе данных или файле
 	switch {
 	case cfg.Database != "":
-		go server.SaveToDBRoutine(webhook, storeInterval)
+		go server.SaveToDBRoutine(ctx, webhook, storeInterval)
 	case cfg.StoragePath != "":
-		go server.SaveToFileRoutine(webhook, storeInterval, cfg.StoragePath)
+		go server.SaveToFileRoutine(ctx, webhook, storeInterval, cfg.StoragePath)
 	}
 
 	r := chi.NewRouter()
 	r.Use(middlewares.Recovery)
-	r.Mount("/", webhook.Route())
+	r.Mount("/", webhook.Route(ctx))
 
 	logger.Log.Info("Running server", zap.String("address", cfg.Address))
 

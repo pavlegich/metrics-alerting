@@ -13,6 +13,8 @@ import (
 )
 
 func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	req := make([]models.Metrics, 0)
 
 	// десериализуем запрос в структуру модели
@@ -55,7 +57,7 @@ func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
 			metricValue = fmt.Sprintf("%v", *metric.Delta)
 		}
 
-		status := h.MemStorage.Put(metricType, metricName, metricValue)
+		status := h.MemStorage.Put(ctx, metricType, metricName, metricValue)
 		if status != http.StatusOK {
 			logger.Log.Error("HandlePostUpdates: metric put error")
 			w.WriteHeader(status)
@@ -68,15 +70,19 @@ func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Webhook) HandlePostMetric(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
 	w.Header().Set("Content-Type", "text/plain")
-	status := h.MemStorage.Put(metricType, metricName, metricValue)
+	status := h.MemStorage.Put(ctx, metricType, metricName, metricValue)
 	w.WriteHeader(status)
 }
 
 func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	var req models.Metrics
 
 	// десериализуем запрос в структуру модели
@@ -117,7 +123,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 		metricValue = fmt.Sprintf("%v", *req.Delta)
 	}
 
-	status := h.MemStorage.Put(metricType, metricName, metricValue)
+	status := h.MemStorage.Put(ctx, metricType, metricName, metricValue)
 	if status != http.StatusOK {
 		logger.Log.Error("metric put error")
 		w.WriteHeader(status)
@@ -125,7 +131,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// заполняем модель ответа
-	newValue, status := h.MemStorage.Get(metricType, metricName)
+	newValue, status := h.MemStorage.Get(ctx, metricType, metricName)
 	if status != http.StatusOK {
 		logger.Log.Info("metric get error")
 		w.WriteHeader(status)

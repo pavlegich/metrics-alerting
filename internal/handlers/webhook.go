@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 
@@ -14,14 +15,14 @@ type Webhook struct {
 	Database   *sql.DB
 }
 
-func NewWebhook(memStorage interfaces.MetricStorage, db *sql.DB) *Webhook {
+func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, db *sql.DB) *Webhook {
 	return &Webhook{
 		MemStorage: memStorage,
 		Database:   db,
 	}
 }
 
-func (h *Webhook) Route() *chi.Mux {
+func (h *Webhook) Route(ctx context.Context) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middlewares.WithLogging)
 	r.Use(middlewares.GZIP)

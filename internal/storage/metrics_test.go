@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"net/http"
 	"reflect"
 	"testing"
@@ -118,7 +119,7 @@ func TestMemStorage_Put(t *testing.T) {
 			ms := &MemStorage{
 				Metrics: tc.fields.Metrics,
 			}
-			get := ms.Put(tc.args.metricType, tc.args.metricName, tc.args.metricValue)
+			get := ms.Put(context.Background(), tc.args.metricType, tc.args.metricName, tc.args.metricValue)
 			assert.Equal(t, tc.want, get)
 		})
 	}
@@ -222,7 +223,7 @@ func TestMemStorage_Get(t *testing.T) {
 			ms := &MemStorage{
 				Metrics: tc.fields.Metrics,
 			}
-			getValue, getCode := ms.Get(tc.args.metricType, tc.args.metricName)
+			getValue, getCode := ms.Get(context.Background(), tc.args.metricType, tc.args.metricName)
 			assert.Equal(t, tc.want.value, getValue)
 			assert.Equal(t, tc.want.code, getCode)
 		})
@@ -274,7 +275,7 @@ func TestMemStorage_GetAll(t *testing.T) {
 			ms := &MemStorage{
 				Metrics: tc.fields.Metrics,
 			}
-			get, status := ms.GetAll()
+			get, status := ms.GetAll(context.Background())
 			assert.Equal(t, tc.want.metrics, get)
 			assert.Equal(t, tc.want.status, status)
 		})
@@ -293,7 +294,7 @@ func TestNewMemStorage(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := NewMemStorage(); !reflect.DeepEqual(got, tc.want) {
+			if got := NewMemStorage(context.Background()); !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("NewMemStorage() = %v, want %v", got, tc.want)
 			}
 		})

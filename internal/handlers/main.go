@@ -8,7 +8,9 @@ import (
 )
 
 func (h *Webhook) HandleMain(w http.ResponseWriter, r *http.Request) {
-	metrics, status := h.MemStorage.GetAll()
+	ctx := r.Context()
+
+	metrics, status := h.MemStorage.GetAll(ctx)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 		return

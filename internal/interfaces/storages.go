@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"context"
 	"runtime"
 )
 
@@ -14,8 +15,8 @@ type (
 	}
 
 	MetricStorage interface {
-		Put(metricType string, metricName string, metricValue string) int
-		GetAll() (map[string]string, int)
-		Get(metricType string, metricName string) (string, int)
+		Put(ctx context.Context, metricType string, metricName string, metricValue string) int
+		GetAll(ctx context.Context) (map[string]string, int)
+		Get(ctx context.Context, metricType string, metricName string) (string, int)
 	}
 )

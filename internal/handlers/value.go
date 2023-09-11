@@ -12,10 +12,12 @@ import (
 )
 
 func (h *Webhook) HandleGetMetric(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	w.Header().Set("Content-Type", "text/plain")
-	value, status := h.MemStorage.Get(metricType, metricName)
+	value, status := h.MemStorage.Get(ctx, metricType, metricName)
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 		return
@@ -25,6 +27,8 @@ func (h *Webhook) HandleGetMetric(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	var req models.Metrics
 
 	// десериализуем запрос в структуру модели
@@ -61,7 +65,7 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 	// fmt.Println(metricType, metricName)
 
 	// заполняем модель ответа
-	metricValue, status := h.MemStorage.Get(metricType, metricName)
+	metricValue, status := h.MemStorage.Get(ctx, metricType, metricName)
 
 	if status != http.StatusOK {
 		logger.Log.Info("metric get error")

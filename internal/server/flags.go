@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"flag"
 	"fmt"
 
@@ -15,7 +16,7 @@ type Config struct {
 	Database      string `env:"DATABASE_DSN"`
 }
 
-func ParseFlags() (*Config, error) {
+func ParseFlags(ctx context.Context) (*Config, error) {
 	cfg := &Config{}
 
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "HTTP-server endpoint address host:port")

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -13,7 +14,7 @@ type (
 )
 
 // метод Update обновляет хранилище данных в зависимости от запроса
-func (ms *MemStorage) Put(metricType string, metricName string, metricValue string) int {
+func (ms *MemStorage) Put(ctx context.Context, metricType string, metricName string, metricValue string) int {
 	if metricName == "" {
 		return http.StatusNotFound
 	}
@@ -49,15 +50,15 @@ func (ms *MemStorage) Put(metricType string, metricName string, metricValue stri
 	return http.StatusOK
 }
 
-func NewMemStorage() *MemStorage {
+func NewMemStorage(ctx context.Context) *MemStorage {
 	return &MemStorage{make(map[string]string)}
 }
 
-func (ms *MemStorage) GetAll() (map[string]string, int) {
+func (ms *MemStorage) GetAll(ctx context.Context) (map[string]string, int) {
 	return ms.Metrics, http.StatusOK
 }
 
-func (ms *MemStorage) Get(metricType string, metricName string) (string, int) {
+func (ms *MemStorage) Get(ctx context.Context, metricType string, metricName string) (string, int) {
 	if (metricType != "gauge") && (metricType != "counter") {
 		return "", http.StatusNotImplemented
 	}

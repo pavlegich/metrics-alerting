@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"io"
 	"net/http"
@@ -32,12 +33,13 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 
 func TestCounterPost(t *testing.T) {
 	// запуск сервера
-	ms := storage.NewMemStorage()
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
-	h := NewWebhook(ms, db)
-	ts := httptest.NewServer(h.Route())
+	h := NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
 	type want struct {
@@ -91,11 +93,12 @@ func TestCounterPost(t *testing.T) {
 
 func TestGaugePost(t *testing.T) {
 	// запуск сервера
-	ms := storage.NewMemStorage()
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
-	h := NewWebhook(ms, db)
-	ts := httptest.NewServer(h.Route())
+	h := NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
 	type want struct {
@@ -149,12 +152,13 @@ func TestGaugePost(t *testing.T) {
 
 func TestGaugeGet(t *testing.T) {
 	// запуск сервера
-	ms := storage.NewMemStorage()
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	db.Close()
-	h := NewWebhook(ms, db)
-	ts := httptest.NewServer(h.Route())
+	h := NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
 	type want struct {
@@ -226,12 +230,13 @@ func TestGaugeGet(t *testing.T) {
 
 func TestMainPage(t *testing.T) {
 	// запуск сервера
-	ms := storage.NewMemStorage()
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	db.Close()
-	h := NewWebhook(ms, db)
-	ts := httptest.NewServer(h.Route())
+	h := NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
 	type want struct {

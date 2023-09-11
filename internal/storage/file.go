@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,25 +14,25 @@ type FileMetrics struct {
 	Metrics map[string]string `json:"metrics"`
 }
 
-func (fm *FileMetrics) SetFileMetrics(mName string, mValue string) error {
+func (fm *FileMetrics) SetFileMetrics(ctx context.Context, mName string, mValue string) error {
 	fm.Metrics[mName] = mValue
 	return nil
 }
 
-func NewFileMetrics() *FileMetrics {
+func NewFileMetrics(ctx context.Context) *FileMetrics {
 	return &FileMetrics{Metrics: make(map[string]string)}
 }
 
-func SaveToFile(path string, ms interfaces.MetricStorage) error {
+func SaveToFile(ctx context.Context, path string, ms interfaces.MetricStorage) error {
 	// сериализуем структуру в JSON формат
-	metrics, status := ms.GetAll()
+	metrics, status := ms.GetAll(ctx)
 	if status != http.StatusOK {
 		return fmt.Errorf("SaveToFile: metrics get error %v", status)
 	}
 
-	storage := NewFileMetrics()
+	storage := NewFileMetrics(ctx)
 	for m, v := range metrics {
-		storage.SetFileMetrics(m, v)
+		storage.SetFileMetrics(ctx, m, v)
 	}
 
 	data, err := json.Marshal(storage)
@@ -45,12 +46,12 @@ func SaveToFile(path string, ms interfaces.MetricStorage) error {
 	return nil
 }
 
-func LoadFromFile(path string, ms interfaces.MetricStorage) error {
+func LoadFromFile(ctx context.Context, path string, ms interfaces.MetricStorage) error {
 	if _, err := os.Stat(path); err != nil {
 		if _, err := os.Create(path); err != nil {
 			return fmt.Errorf("LoadFromFile: file create %w", err)
 		}
-		if err := SaveToFile(path, ms); err != nil {
+		if err := SaveToFile(ctx, path, ms); err != nil {
 			return fmt.Errorf("LoadFromFile: data save %w", err)
 		}
 	}
@@ -59,7 +60,7 @@ func LoadFromFile(path string, ms interfaces.MetricStorage) error {
 		return fmt.Errorf("LoadFromFile: read file error %w", err)
 	}
 
-	storage := NewFileMetrics()
+	storage := NewFileMetrics(ctx)
 
 	if err := json.Unmarshal(data, &storage); err != nil {
 		return fmt.Errorf("LoadFromFile: data unmarshal %w", err)
@@ -68,7 +69,7 @@ func LoadFromFile(path string, ms interfaces.MetricStorage) error {
 	for m, v := range storage.Metrics {
 		// Сейчас все пусть будут gauge, чтобы ошибок с конвертацией не было, он не записывает тип в storage
 		// Впоследствии сделаю, чтобы в storage хранились отдельно gauge и counter, не все string
-		if status := ms.Put("gauge", m, v); status != http.StatusOK {
+		if status := ms.Put(ctx, "gauge", m, v); status != http.StatusOK {
 			return fmt.Errorf("LoadFromFile: put metric status %v", status)
 		}
 	}
