@@ -47,7 +47,6 @@ func StatsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Du
 						if err := st.SendBatch(addr); !errors.Is(err, syscall.ECONNREFUSED) {
 							break
 						}
-						// logger.Log.Error("StatsRoutine: connection with server refused", zap.Error(err))
 					}
 					c <- fmt.Errorf("StatsRoutine: connection with server refused %w", err)
 				} else {

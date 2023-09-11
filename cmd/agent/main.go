@@ -41,7 +41,7 @@ func main() {
 			break // exit
 		}
 		if err != nil {
-			logger.Log.Error("retriable-error is not nil; exit", zap.Error(err))
+			logger.Log.Error("retriable error is not nil; exit", zap.Error(err))
 			break
 		}
 	}

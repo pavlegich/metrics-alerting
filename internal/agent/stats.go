@@ -84,6 +84,40 @@ func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64
 	return nil
 }
 
+func Send(target string, stats ...models.Metrics) error {
+	req, err := json.Marshal(stats)
+	if err != nil {
+		return fmt.Errorf("Send: request marshal %w", err)
+	}
+
+	buf := bytes.NewBuffer(nil)
+	zb := gzip.NewWriter(buf)
+	if _, err := zb.Write(req); err != nil {
+		return fmt.Errorf("Send: write request into buffer %w", err)
+	}
+	if err = zb.Close(); err != nil {
+		return err
+	}
+
+	r, err := http.NewRequest(http.MethodPost, target, buf)
+	if err != nil {
+		return fmt.Errorf("Send: new post request %w", err)
+	}
+
+	r.Header.Set("Content-Encoding", "gzip")
+	r.Header.Set("Accept-Encoding", "gzip")
+	r.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+		return fmt.Errorf("Send: response get %w", err)
+	}
+
+	resp.Body.Close()
+
+	return nil
+}
+
 func (st *StatStorage) SendBatch(url string) error {
 
 	target := "http://" + url + "/updates/"
@@ -94,40 +128,14 @@ func (st *StatStorage) SendBatch(url string) error {
 		stats = append(stats, s)
 	}
 
-	req, err := json.Marshal(stats)
-	if err != nil {
-		return fmt.Errorf("SendBatch: request marshal %w", err)
+	if err := Send(target, stats...); err != nil {
+		return fmt.Errorf("SendBatch: send stats error %w", err)
 	}
-
-	buf := bytes.NewBuffer(nil)
-	zb := gzip.NewWriter(buf)
-	if _, err := zb.Write(req); err != nil {
-		return fmt.Errorf("SendBatch: write request into buffer %w", err)
-	}
-	if err = zb.Close(); err != nil {
-		return err
-	}
-
-	r, err := http.NewRequest(http.MethodPost, target, buf)
-	if err != nil {
-		return fmt.Errorf("SendBatch: new post request %w", err)
-	}
-
-	r.Header.Set("Content-Encoding", "gzip")
-	r.Header.Set("Accept-Encoding", "gzip")
-	r.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(r)
-	if err != nil {
-		return fmt.Errorf("SendBatch: response get %w", err)
-	}
-
-	resp.Body.Close()
 
 	return nil
 }
 
-func (st *StatStorage) Send(url string) error {
+func (st *StatStorage) SendJSON(url string) error {
 	for _, stat := range st.stats {
 		target := "http://" + url + "/update/"
 
@@ -141,13 +149,6 @@ func (st *StatStorage) Send(url string) error {
 			return fmt.Errorf("Send: response post %w", err)
 		}
 
-		// respDump, err := httputil.DumpResponse(resp, true)
-		// if err != nil {
-		// 	log.Println(err)
-		// }
-
-		// fmt.Printf("RESPONSE:\n%s", string(respDump))
-
 		resp.Body.Close()
 	}
 	return nil
@@ -158,35 +159,9 @@ func (st *StatStorage) SendGZIP(url string) error {
 	for _, stat := range st.stats {
 		target := "http://" + url + "/update/"
 
-		req, err := json.Marshal(stat)
-		if err != nil {
-			return fmt.Errorf("SendGZIP: request marshal %w", err)
+		if err := Send(target, stat); err != nil {
+			return fmt.Errorf("SendBatch: send stats error %w", err)
 		}
-
-		buf := bytes.NewBuffer(nil)
-		zb := gzip.NewWriter(buf)
-		if _, err := zb.Write(req); err != nil {
-			return fmt.Errorf("SendGZIP: write request into buffer %w", err)
-		}
-		if err = zb.Close(); err != nil {
-			return err
-		}
-
-		r, err := http.NewRequest(http.MethodPost, target, buf)
-		if err != nil {
-			return fmt.Errorf("SendGZIP: new post request %w", err)
-		}
-
-		r.Header.Set("Content-Encoding", "gzip")
-		r.Header.Set("Accept-Encoding", "gzip")
-		r.Header.Set("Content-Type", "application/json")
-
-		resp, err := http.DefaultClient.Do(r)
-		if err != nil {
-			return fmt.Errorf("SendGZIP: response get %w", err)
-		}
-
-		resp.Body.Close()
 	}
 	return nil
 }
