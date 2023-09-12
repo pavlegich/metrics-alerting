@@ -50,6 +50,12 @@ func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) erro
 		return fmt.Errorf("SaveToDB: couldn't create table %w", err)
 	}
 
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("SaveToDB: begin transaction failed %w", err)
+	}
+	defer tx.Rollback()
+
 	// Сохранение метрик в хранилище
 	statement, err := db.PrepareContext(ctx, "INSERT INTO storage (id, value) VALUES ($1, $2) ON CONFLICT (id) DO "+
 		"UPDATE SET value=$2 WHERE storage.id=$1")
@@ -62,6 +68,10 @@ func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) erro
 		if _, err := statement.ExecContext(ctx, id, value); err != nil {
 			return fmt.Errorf("SaveToDB: statement exec failed %w", err)
 		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("SaveToDB: commit transaction failed %w", err)
 	}
 
 	return nil
