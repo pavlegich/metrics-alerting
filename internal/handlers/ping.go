@@ -1,17 +1,14 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
-	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/logger"
 	"go.uber.org/zap"
 )
 
 func (h *Webhook) HandlePing(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
+	ctx := r.Context()
 
 	if h.Database == nil {
 		logger.Log.Error("HandlePing: database is nil")

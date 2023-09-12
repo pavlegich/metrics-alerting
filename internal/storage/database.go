@@ -43,21 +43,21 @@ func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) erro
 		return fmt.Errorf("SaveToDB: connection to database is died %w", err)
 	}
 
-	// Создание таблицы при её отсутствии
-	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS storage (
-		id text PRIMARY KEY, 
-		value text NOT NULL);`); err != nil {
-		return fmt.Errorf("SaveToDB: couldn't create table %w", err)
-	}
-
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("SaveToDB: begin transaction failed %w", err)
 	}
 	defer tx.Rollback()
 
+	// Создание таблицы при её отсутствии
+	if _, err := tx.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS storage (
+		id text PRIMARY KEY, 
+		value text NOT NULL);`); err != nil {
+		return fmt.Errorf("SaveToDB: couldn't create table %w", err)
+	}
+
 	// Сохранение метрик в хранилище
-	statement, err := db.PrepareContext(ctx, "INSERT INTO storage (id, value) VALUES ($1, $2) ON CONFLICT (id) DO "+
+	statement, err := tx.PrepareContext(ctx, "INSERT INTO storage (id, value) VALUES ($1, $2) ON CONFLICT (id) DO "+
 		"UPDATE SET value=$2 WHERE storage.id=$1")
 	if err != nil {
 		return fmt.Errorf("SaveToDB: insert into table failed %w", err)
@@ -80,18 +80,24 @@ func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) erro
 func LoadFromDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) error {
 	// Проверка базы данных
 	if err := db.PingContext(ctx); err != nil {
-		return fmt.Errorf("SaveToDB: connection to database is died %w", err)
+		return fmt.Errorf("LoadFromDB: connection to database is died %w", err)
 	}
 
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("LoadFromDB: begin transaction failed %w", err)
+	}
+	defer tx.Rollback()
+
 	// Создание таблицы при её отсутствии
-	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS storage (
+	if _, err := tx.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS storage (
 		id text PRIMARY KEY, 
 		value text NOT NULL);`); err != nil {
 		return fmt.Errorf("LoadFromDB: couldn't create table %w", err)
 	}
 
 	// Получение метрик из хранилища
-	rows, err := db.QueryContext(ctx, "SELECT id, value FROM storage")
+	rows, err := tx.QueryContext(ctx, "SELECT id, value FROM storage")
 	if err != nil {
 		return fmt.Errorf("LoadFromDB: read rows from table failed %w", err)
 	}
@@ -112,10 +118,13 @@ func LoadFromDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) er
 		return fmt.Errorf("LoadFromDB: rows.Err %w", err)
 	}
 
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("LoadFromDB: commit transaction failed %w", err)
+	}
+
 	// Сохранение данных в локальном хранилище
 	for _, metric := range DBMetrics {
-		// Сейчас все пусть будут gauge, чтобы ошибок с конвертацией не было, он не записывает тип в storage
-		// Впоследствии сделаю, чтобы в storage хранились отдельно gauge и counter, не все string
+		// Пока все будут gauge, чтобы ошибок с конвертацией не было, тип не хранится в MemStorage
 		if status := ms.Put(ctx, "gauge", metric.ID, metric.Value); status != http.StatusOK {
 			return fmt.Errorf("LoadFromDB: put all metrics status %v", status)
 		}
