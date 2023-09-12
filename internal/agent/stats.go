@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -16,13 +17,13 @@ type StatStorage struct {
 	stats map[string]models.Metrics
 }
 
-func NewStatStorage() *StatStorage {
+func NewStatStorage(ctx context.Context) *StatStorage {
 	return &StatStorage{
 		stats: make(map[string]models.Metrics),
 	}
 }
 
-func (st *StatStorage) Put(sType string, name string, value string) error {
+func (st *StatStorage) Put(ctx context.Context, sType string, name string, value string) error {
 	switch sType {
 	case "gauge":
 		v, err := strconv.ParseFloat(value, 64)
@@ -49,42 +50,42 @@ func (st *StatStorage) Put(sType string, name string, value string) error {
 	return nil
 }
 
-func (st *StatStorage) Update(memStats runtime.MemStats, count int, rand float64) error {
+func (st *StatStorage) Update(ctx context.Context, memStats runtime.MemStats, count int, rand float64) error {
 
-	st.Put("gauge", "Alloc", fmt.Sprintf("%v", memStats.Alloc))
-	st.Put("gauge", "BuckHashSys", fmt.Sprintf("%v", memStats.BuckHashSys))
-	st.Put("gauge", "Frees", fmt.Sprintf("%v", memStats.Frees))
-	st.Put("gauge", "GCCPUFraction", fmt.Sprintf("%v", memStats.GCCPUFraction))
-	st.Put("gauge", "GCSys", fmt.Sprintf("%v", memStats.GCSys))
-	st.Put("gauge", "HeapAlloc", fmt.Sprintf("%v", memStats.HeapAlloc))
-	st.Put("gauge", "HeapIdle", fmt.Sprintf("%v", memStats.HeapIdle))
-	st.Put("gauge", "HeapInuse", fmt.Sprintf("%v", memStats.HeapInuse))
-	st.Put("gauge", "HeapObjects", fmt.Sprintf("%v", memStats.HeapObjects))
-	st.Put("gauge", "HeapReleased", fmt.Sprintf("%v", memStats.HeapReleased))
-	st.Put("gauge", "HeapSys", fmt.Sprintf("%v", memStats.HeapSys))
-	st.Put("gauge", "LastGC", fmt.Sprintf("%v", memStats.LastGC))
-	st.Put("gauge", "Lookups", fmt.Sprintf("%v", memStats.Lookups))
-	st.Put("gauge", "MCacheInuse", fmt.Sprintf("%v", memStats.MCacheInuse))
-	st.Put("gauge", "MCacheSys", fmt.Sprintf("%v", memStats.MCacheSys))
-	st.Put("gauge", "MSpanInuse", fmt.Sprintf("%v", memStats.MSpanInuse))
-	st.Put("gauge", "MSpanSys", fmt.Sprintf("%v", memStats.MSpanSys))
-	st.Put("gauge", "Mallocs", fmt.Sprintf("%v", memStats.Mallocs))
-	st.Put("gauge", "NextGC", fmt.Sprintf("%v", memStats.NextGC))
-	st.Put("gauge", "NumForcedGC", fmt.Sprintf("%v", memStats.NumForcedGC))
-	st.Put("gauge", "NumGC", fmt.Sprintf("%v", memStats.NumGC))
-	st.Put("gauge", "OtherSys", fmt.Sprintf("%v", memStats.OtherSys))
-	st.Put("gauge", "PauseTotalNs", fmt.Sprintf("%v", memStats.PauseTotalNs))
-	st.Put("gauge", "StackInuse", fmt.Sprintf("%v", memStats.StackInuse))
-	st.Put("gauge", "StackSys", fmt.Sprintf("%v", memStats.StackSys))
-	st.Put("gauge", "Sys", fmt.Sprintf("%v", memStats.Sys))
-	st.Put("gauge", "TotalAlloc", fmt.Sprintf("%v", memStats.TotalAlloc))
-	st.Put("gauge", "RandomValue", fmt.Sprintf("%v", rand))
-	st.Put("counter", "PollCount", fmt.Sprintf("%v", count))
+	st.Put(ctx, "gauge", "Alloc", fmt.Sprintf("%v", memStats.Alloc))
+	st.Put(ctx, "gauge", "BuckHashSys", fmt.Sprintf("%v", memStats.BuckHashSys))
+	st.Put(ctx, "gauge", "Frees", fmt.Sprintf("%v", memStats.Frees))
+	st.Put(ctx, "gauge", "GCCPUFraction", fmt.Sprintf("%v", memStats.GCCPUFraction))
+	st.Put(ctx, "gauge", "GCSys", fmt.Sprintf("%v", memStats.GCSys))
+	st.Put(ctx, "gauge", "HeapAlloc", fmt.Sprintf("%v", memStats.HeapAlloc))
+	st.Put(ctx, "gauge", "HeapIdle", fmt.Sprintf("%v", memStats.HeapIdle))
+	st.Put(ctx, "gauge", "HeapInuse", fmt.Sprintf("%v", memStats.HeapInuse))
+	st.Put(ctx, "gauge", "HeapObjects", fmt.Sprintf("%v", memStats.HeapObjects))
+	st.Put(ctx, "gauge", "HeapReleased", fmt.Sprintf("%v", memStats.HeapReleased))
+	st.Put(ctx, "gauge", "HeapSys", fmt.Sprintf("%v", memStats.HeapSys))
+	st.Put(ctx, "gauge", "LastGC", fmt.Sprintf("%v", memStats.LastGC))
+	st.Put(ctx, "gauge", "Lookups", fmt.Sprintf("%v", memStats.Lookups))
+	st.Put(ctx, "gauge", "MCacheInuse", fmt.Sprintf("%v", memStats.MCacheInuse))
+	st.Put(ctx, "gauge", "MCacheSys", fmt.Sprintf("%v", memStats.MCacheSys))
+	st.Put(ctx, "gauge", "MSpanInuse", fmt.Sprintf("%v", memStats.MSpanInuse))
+	st.Put(ctx, "gauge", "MSpanSys", fmt.Sprintf("%v", memStats.MSpanSys))
+	st.Put(ctx, "gauge", "Mallocs", fmt.Sprintf("%v", memStats.Mallocs))
+	st.Put(ctx, "gauge", "NextGC", fmt.Sprintf("%v", memStats.NextGC))
+	st.Put(ctx, "gauge", "NumForcedGC", fmt.Sprintf("%v", memStats.NumForcedGC))
+	st.Put(ctx, "gauge", "NumGC", fmt.Sprintf("%v", memStats.NumGC))
+	st.Put(ctx, "gauge", "OtherSys", fmt.Sprintf("%v", memStats.OtherSys))
+	st.Put(ctx, "gauge", "PauseTotalNs", fmt.Sprintf("%v", memStats.PauseTotalNs))
+	st.Put(ctx, "gauge", "StackInuse", fmt.Sprintf("%v", memStats.StackInuse))
+	st.Put(ctx, "gauge", "StackSys", fmt.Sprintf("%v", memStats.StackSys))
+	st.Put(ctx, "gauge", "Sys", fmt.Sprintf("%v", memStats.Sys))
+	st.Put(ctx, "gauge", "TotalAlloc", fmt.Sprintf("%v", memStats.TotalAlloc))
+	st.Put(ctx, "gauge", "RandomValue", fmt.Sprintf("%v", rand))
+	st.Put(ctx, "counter", "PollCount", fmt.Sprintf("%v", count))
 
 	return nil
 }
 
-func Send(target string, stats ...models.Metrics) error {
+func Send(ctx context.Context, target string, stats ...models.Metrics) error {
 	req, err := json.Marshal(stats)
 	if err != nil {
 		return fmt.Errorf("Send: request marshal %w", err)
@@ -118,7 +119,7 @@ func Send(target string, stats ...models.Metrics) error {
 	return nil
 }
 
-func (st *StatStorage) SendBatch(url string) error {
+func (st *StatStorage) SendBatch(ctx context.Context, url string) error {
 
 	target := "http://" + url + "/updates/"
 
@@ -128,14 +129,14 @@ func (st *StatStorage) SendBatch(url string) error {
 		stats = append(stats, s)
 	}
 
-	if err := Send(target, stats...); err != nil {
+	if err := Send(ctx, target, stats...); err != nil {
 		return fmt.Errorf("SendBatch: send stats error %w", err)
 	}
 
 	return nil
 }
 
-func (st *StatStorage) SendJSON(url string) error {
+func (st *StatStorage) SendJSON(ctx context.Context, url string) error {
 	for _, stat := range st.stats {
 		target := "http://" + url + "/update/"
 
@@ -154,12 +155,12 @@ func (st *StatStorage) SendJSON(url string) error {
 	return nil
 }
 
-func (st *StatStorage) SendGZIP(url string) error {
+func (st *StatStorage) SendGZIP(ctx context.Context, url string) error {
 
 	for _, stat := range st.stats {
 		target := "http://" + url + "/update/"
 
-		if err := Send(target, stat); err != nil {
+		if err := Send(ctx, target, stat); err != nil {
 			return fmt.Errorf("SendBatch: send stats error %w", err)
 		}
 	}

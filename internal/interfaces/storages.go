@@ -7,11 +7,11 @@ import (
 
 type (
 	StatsStorage interface {
-		SendJSON(url string) error
-		SendGZIP(url string) error
-		SendBatch(url string) error
-		Update(memStats runtime.MemStats, count int, rand float64) error
-		Put(sType string, name string, value string) error
+		SendJSON(ctx context.Context, url string) error
+		SendGZIP(ctx context.Context, url string) error
+		SendBatch(ctx context.Context, url string) error
+		Update(ctx context.Context, memStats runtime.MemStats, count int, rand float64) error
+		Put(ctx context.Context, sType string, name string, value string) error
 	}
 
 	MetricStorage interface {

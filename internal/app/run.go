@@ -19,12 +19,12 @@ import (
 
 // функция run запускает сервер
 func Run() error {
-	if err := logger.Initialize("Info"); err != nil {
+	ctx := context.Background()
+
+	if err := logger.Initialize(ctx, "Info"); err != nil {
 		return err
 	}
 	defer logger.Log.Sync()
-
-	ctx := context.Background()
 
 	// Считывание флагов
 	cfg, err := server.ParseFlags(ctx)

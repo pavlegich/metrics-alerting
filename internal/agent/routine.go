@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -13,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func StatsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Duration, addr string, c chan error) {
+func StatsRoutine(ctx context.Context, st interfaces.StatsStorage, poll time.Duration, report time.Duration, addr string, c chan error) {
 	tickerPoll := time.NewTicker(poll)
 	tickerReport := time.NewTicker(report)
 	defer tickerPoll.Stop()
@@ -35,16 +36,16 @@ func StatsRoutine(st interfaces.StatsStorage, poll time.Duration, report time.Du
 			randomValue = rand.Float64()
 
 			// Опрос метрик
-			if err := st.Update(memStats, pollCount, randomValue); err != nil {
+			if err := st.Update(ctx, memStats, pollCount, randomValue); err != nil {
 				logger.Log.Error("StatsRoutine: stats update", zap.Error(err))
 			}
 		case <-tickerReport.C:
-			if err := st.SendBatch(addr); err != nil {
+			if err := st.SendBatch(ctx, addr); err != nil {
 				if errors.Is(err, syscall.ECONNREFUSED) {
 					intervals := []time.Duration{time.Second, 3 * time.Second, 5 * time.Second}
 					for _, interval := range intervals {
 						time.Sleep(interval)
-						if err := st.SendBatch(addr); !errors.Is(err, syscall.ECONNREFUSED) {
+						if err := st.SendBatch(ctx, addr); !errors.Is(err, syscall.ECONNREFUSED) {
 							break
 						}
 					}

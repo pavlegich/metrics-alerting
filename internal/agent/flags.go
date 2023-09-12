@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"flag"
 	"fmt"
 
@@ -13,7 +14,7 @@ type Config struct {
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 }
 
-func ParseFlags() (*Config, error) {
+func ParseFlags(ctx context.Context) (*Config, error) {
 	cfg := &Config{}
 
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "HTTP-server endpoint address host:port")
