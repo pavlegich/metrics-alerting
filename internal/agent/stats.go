@@ -100,7 +100,7 @@ func Send(ctx context.Context, target string, stats ...models.Metrics) error {
 		return err
 	}
 
-	r, err := http.NewRequest(http.MethodPost, target, buf)
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, target, buf)
 	if err != nil {
 		return fmt.Errorf("Send: new post request %w", err)
 	}

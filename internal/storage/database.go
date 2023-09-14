@@ -3,10 +3,12 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"fmt"
 	"net/http"
 
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
+	"github.com/pressly/goose/v3"
 )
 
 type DBMetric struct {
@@ -14,14 +16,27 @@ type DBMetric struct {
 	Value string
 }
 
-func NewDatabase(ctx context.Context, path string) (*sql.DB, error) {
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
+
+func InitDB(ctx context.Context, path string) (*sql.DB, error) {
+	// Открытие и проверка базы данных
 	db, err := sql.Open("pgx", path)
 	if err != nil {
-		return nil, fmt.Errorf("NewDatabase: couldn't open database %w", err)
+		return nil, fmt.Errorf("InitDB: couldn't open database %w", err)
 	}
 
 	if err := db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("NewDatabase: connection with database is died %w", err)
+		return nil, fmt.Errorf("InitDB: connection with database is died %w", err)
+	}
+
+	// Миграции
+	goose.SetBaseFS(embedMigrations)
+	if err := goose.SetDialect("postgres"); err != nil {
+		return nil, fmt.Errorf("InitDB: goose set dialect failed %w", err)
+	}
+	if err := goose.Up(db, "migrations"); err != nil {
+		return nil, fmt.Errorf("InitDB: goose up failed %w", err)
 	}
 
 	return db, nil
@@ -48,13 +63,6 @@ func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) erro
 		return fmt.Errorf("SaveToDB: begin transaction failed %w", err)
 	}
 	defer tx.Rollback()
-
-	// Создание таблицы при её отсутствии
-	if _, err := tx.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS storage (
-		id text PRIMARY KEY, 
-		value text NOT NULL);`); err != nil {
-		return fmt.Errorf("SaveToDB: couldn't create table %w", err)
-	}
 
 	// Сохранение метрик в хранилище
 	statement, err := tx.PrepareContext(ctx, "INSERT INTO storage (id, value) VALUES ($1, $2) ON CONFLICT (id) DO "+
@@ -88,13 +96,6 @@ func LoadFromDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) er
 		return fmt.Errorf("LoadFromDB: begin transaction failed %w", err)
 	}
 	defer tx.Rollback()
-
-	// Создание таблицы при её отсутствии
-	if _, err := tx.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS storage (
-		id text PRIMARY KEY, 
-		value text NOT NULL);`); err != nil {
-		return fmt.Errorf("LoadFromDB: couldn't create table %w", err)
-	}
 
 	// Получение метрик из хранилища
 	rows, err := tx.QueryContext(ctx, "SELECT id, value FROM storage")

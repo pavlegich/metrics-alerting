@@ -11,8 +11,8 @@ func (h *Webhook) HandlePing(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if h.Database == nil {
-		logger.Log.Error("HandlePing: database is nil")
-		w.WriteHeader(http.StatusInternalServerError)
+		logger.Log.Info("HandlePing: database is nil")
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 

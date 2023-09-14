@@ -46,7 +46,7 @@ func Run() error {
 	// Инициализация базы данных
 	var db *sql.DB
 	if cfg.Database != "" {
-		db, err = storage.NewDatabase(ctx, cfg.Database)
+		db, err = storage.InitDB(ctx, cfg.Database)
 		if err != nil {
 			logger.Log.Error("Run: database open failed", zap.Error(err))
 		}

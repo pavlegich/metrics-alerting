@@ -3,7 +3,6 @@ package agent
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/rand"
 	"runtime"
 	"syscall"
@@ -14,7 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func StatsRoutine(ctx context.Context, st interfaces.StatsStorage, poll time.Duration, report time.Duration, addr string, c chan error) {
+func StatsRoutine(ctx context.Context, st interfaces.StatsStorage, poll time.Duration, report time.Duration, addr string, c chan int) {
 	tickerPoll := time.NewTicker(poll)
 	tickerReport := time.NewTicker(report)
 	defer tickerPoll.Stop()
@@ -49,7 +48,7 @@ func StatsRoutine(ctx context.Context, st interfaces.StatsStorage, poll time.Dur
 							break
 						}
 					}
-					c <- fmt.Errorf("StatsRoutine: connection with server refused %w", err)
+					logger.Log.Error("StatsRoutine: retriable error connection refused", zap.Error(err))
 				} else {
 					logger.Log.Error("StatsRoutine: send stats failed", zap.Error(err))
 				}
