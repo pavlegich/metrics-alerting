@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"github.com/pavlegich/metrics-alerting/internal/infra/sign"
@@ -38,7 +39,7 @@ func WithSign(h http.Handler) http.Handler {
 			fmt.Printf("server key: '%s'", models.KEY)
 			fmt.Printf("got: '%s'; want: '%s'", got, want)
 
-			if want != got {
+			if reflect.DeepEqual(want, got) {
 				logger.Log.Info("WithSign: hashes not equal")
 				w.WriteHeader(http.StatusBadRequest)
 				return
