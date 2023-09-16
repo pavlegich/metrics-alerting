@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/pavlegich/metrics-alerting/internal/handlers"
 	"github.com/pavlegich/metrics-alerting/internal/models"
+	"github.com/pavlegich/metrics-alerting/internal/server/handlers"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -103,6 +103,7 @@ func TestMemStorage_Send(t *testing.T) {
 		fields  fields
 		method  string
 		address string
+		key     string
 		want    bool
 	}{
 		{
@@ -118,6 +119,7 @@ func TestMemStorage_Send(t *testing.T) {
 			},
 			method:  http.MethodPost,
 			address: addr,
+			key:     "",
 			want:    false,
 		},
 		{
@@ -133,6 +135,7 @@ func TestMemStorage_Send(t *testing.T) {
 			},
 			method:  http.MethodPost,
 			address: addr,
+			key:     "",
 			want:    false,
 		},
 		{
@@ -148,6 +151,7 @@ func TestMemStorage_Send(t *testing.T) {
 			},
 			method:  http.MethodPost,
 			address: "localhost:443",
+			key:     "",
 			want:    true,
 		},
 	}
@@ -156,7 +160,7 @@ func TestMemStorage_Send(t *testing.T) {
 			st := &StatStorage{
 				stats: tc.fields.stats,
 			}
-			err := st.SendJSON(ctx, tc.address)
+			err := st.SendJSON(ctx, tc.address, tc.key)
 			if !tc.want {
 				assert.NoError(t, err)
 				return

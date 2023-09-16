@@ -14,6 +14,7 @@ type Config struct {
 	StoragePath   string `env:"FILE_STORAGE_PATH"`
 	Restore       bool   `env:"RESTORE"`
 	Database      string `env:"DATABASE_DSN"`
+	Key           string `env:"KEY"`
 }
 
 func ParseFlags(ctx context.Context) (*Config, error) {
@@ -24,6 +25,7 @@ func ParseFlags(ctx context.Context) (*Config, error) {
 	flag.StringVar(&cfg.StoragePath, "f", "/tmp/metrics-db.json", "Full path of values storage")
 	flag.BoolVar(&cfg.Restore, "r", true, "Restore values from the disk")
 	flag.StringVar(&cfg.Database, "d", "", "URI (DSN) to database")
+	flag.StringVar(&cfg.Key, "k", "", "Key for sign")
 
 	flag.Parse()
 

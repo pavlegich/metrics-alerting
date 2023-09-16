@@ -3,7 +3,7 @@ package middlewares
 import (
 	"net/http"
 
-	"github.com/pavlegich/metrics-alerting/internal/logger"
+	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"go.uber.org/zap"
 )
 

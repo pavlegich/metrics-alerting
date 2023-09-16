@@ -7,9 +7,9 @@ import (
 
 type (
 	StatsStorage interface {
-		SendJSON(ctx context.Context, url string) error
-		SendGZIP(ctx context.Context, url string) error
-		SendBatch(ctx context.Context, url string) error
+		SendJSON(ctx context.Context, url string, key string) error
+		SendGZIP(ctx context.Context, url string, key string) error
+		SendBatch(ctx context.Context, url string, key string) error
 		Update(ctx context.Context, memStats runtime.MemStats, count int, rand float64) error
 		Put(ctx context.Context, sType string, name string, value string) error
 	}

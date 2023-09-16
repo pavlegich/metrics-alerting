@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"runtime"
 	"strconv"
 
+	"github.com/pavlegich/metrics-alerting/internal/infra/sign"
 	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
@@ -85,7 +87,7 @@ func (st *StatStorage) Update(ctx context.Context, memStats runtime.MemStats, co
 	return nil
 }
 
-func Send(ctx context.Context, target string, stats ...models.Metrics) error {
+func Send(ctx context.Context, target string, key string, stats ...models.Metrics) error {
 	req, err := json.Marshal(stats)
 	if err != nil {
 		return fmt.Errorf("Send: request marshal %w", err)
@@ -105,6 +107,15 @@ func Send(ctx context.Context, target string, stats ...models.Metrics) error {
 		return fmt.Errorf("Send: new post request %w", err)
 	}
 
+	fmt.Printf("agent key: '%s'", key)
+	if key != "" {
+		hash, err := sign.Sign(req, []byte(key))
+		if err != nil {
+			return fmt.Errorf("Send: sign message failed %w", err)
+		}
+		r.Header.Set("HashSHA256", hex.EncodeToString(hash))
+	}
+
 	r.Header.Set("Content-Encoding", "gzip")
 	r.Header.Set("Accept-Encoding", "gzip")
 	r.Header.Set("Content-Type", "application/json")
@@ -119,7 +130,7 @@ func Send(ctx context.Context, target string, stats ...models.Metrics) error {
 	return nil
 }
 
-func (st *StatStorage) SendBatch(ctx context.Context, url string) error {
+func (st *StatStorage) SendBatch(ctx context.Context, url string, key string) error {
 
 	target := "http://" + url + "/updates/"
 
@@ -129,14 +140,14 @@ func (st *StatStorage) SendBatch(ctx context.Context, url string) error {
 		stats = append(stats, s)
 	}
 
-	if err := Send(ctx, target, stats...); err != nil {
+	if err := Send(ctx, target, key, stats...); err != nil {
 		return fmt.Errorf("SendBatch: send stats error %w", err)
 	}
 
 	return nil
 }
 
-func (st *StatStorage) SendJSON(ctx context.Context, url string) error {
+func (st *StatStorage) SendJSON(ctx context.Context, url string, key string) error {
 	for _, stat := range st.stats {
 		target := "http://" + url + "/update/"
 
@@ -155,12 +166,12 @@ func (st *StatStorage) SendJSON(ctx context.Context, url string) error {
 	return nil
 }
 
-func (st *StatStorage) SendGZIP(ctx context.Context, url string) error {
+func (st *StatStorage) SendGZIP(ctx context.Context, url string, key string) error {
 
 	for _, stat := range st.stats {
 		target := "http://" + url + "/update/"
 
-		if err := Send(ctx, target, stat); err != nil {
+		if err := Send(ctx, target, key, stat); err != nil {
 			return fmt.Errorf("SendBatch: send stats error %w", err)
 		}
 	}

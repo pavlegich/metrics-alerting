@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
-	"github.com/pavlegich/metrics-alerting/internal/middlewares"
+	"github.com/pavlegich/metrics-alerting/internal/server/middlewares"
 )
 
 type Webhook struct {
@@ -26,6 +26,7 @@ func (h *Webhook) Route(ctx context.Context) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middlewares.WithLogging)
 	r.Use(middlewares.GZIP)
+	r.Use(middlewares.WithSign)
 
 	r.Get("/", h.HandleMain)
 

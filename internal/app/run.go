@@ -9,10 +9,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/pavlegich/metrics-alerting/internal/handlers"
-	"github.com/pavlegich/metrics-alerting/internal/logger"
-	"github.com/pavlegich/metrics-alerting/internal/middlewares"
+	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
+	"github.com/pavlegich/metrics-alerting/internal/models"
 	"github.com/pavlegich/metrics-alerting/internal/server"
+	"github.com/pavlegich/metrics-alerting/internal/server/handlers"
+	"github.com/pavlegich/metrics-alerting/internal/server/middlewares"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"go.uber.org/zap"
 )
@@ -57,6 +58,10 @@ func Run() error {
 
 	// Создание нового хендлера для сервера
 	webhook := handlers.NewWebhook(ctx, memStorage, db)
+
+	if cfg.Key != "" {
+		models.KEY = cfg.Key
+	}
 
 	// Загрузка данных из файла
 	if cfg.Restore {

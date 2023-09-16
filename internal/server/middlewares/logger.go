@@ -5,13 +5,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pavlegich/metrics-alerting/internal/logger"
+	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"go.uber.org/zap"
 )
 
 func WithLogging(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
-
 		start := time.Now()
 
 		responseData := &logger.ResponseData{

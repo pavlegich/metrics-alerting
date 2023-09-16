@@ -8,14 +8,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
-	"github.com/pavlegich/metrics-alerting/internal/logger"
 	"go.uber.org/zap"
 )
 
-func StatsRoutine(ctx context.Context, st interfaces.StatsStorage, poll time.Duration, report time.Duration, addr string, c chan int) {
-	tickerPoll := time.NewTicker(poll)
-	tickerReport := time.NewTicker(report)
+func StatsRoutine(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
+	// Интервалы опроса и отправки метрик
+	pollInterval := time.Duration(cfg.PollInterval) * time.Second
+	reportInterval := time.Duration(cfg.ReportInterval) * time.Second
+
+	tickerPoll := time.NewTicker(pollInterval)
+	tickerReport := time.NewTicker(reportInterval)
 	defer tickerPoll.Stop()
 	defer tickerReport.Stop()
 
@@ -39,12 +43,12 @@ func StatsRoutine(ctx context.Context, st interfaces.StatsStorage, poll time.Dur
 				logger.Log.Error("StatsRoutine: stats update", zap.Error(err))
 			}
 		case <-tickerReport.C:
-			if err := st.SendBatch(ctx, addr); err != nil {
+			if err := st.SendBatch(ctx, cfg.Address, cfg.Key); err != nil {
 				if errors.Is(err, syscall.ECONNREFUSED) {
 					intervals := []time.Duration{time.Second, 3 * time.Second, 5 * time.Second}
 					for _, interval := range intervals {
 						time.Sleep(interval)
-						if err := st.SendBatch(ctx, addr); !errors.Is(err, syscall.ECONNREFUSED) {
+						if err := st.SendBatch(ctx, cfg.Address, cfg.Key); !errors.Is(err, syscall.ECONNREFUSED) {
 							break
 						}
 					}

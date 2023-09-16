@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pavlegich/metrics-alerting/internal/handlers"
+	"github.com/pavlegich/metrics-alerting/internal/server/handlers"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 )
 

@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/pavlegich/metrics-alerting/internal/logger"
+	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
@@ -64,6 +64,7 @@ func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
 	// установим правильный заголовок для типа данных
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
@@ -89,12 +90,12 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
-		logger.Log.Error("read body error")
+		logger.Log.Info("HandlePostUpdate: read body error")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	if err := json.Unmarshal(buf.Bytes(), &req); err != nil {
-		logger.Log.Error("decoding error")
+		logger.Log.Info("HandlePostUpdate: decoding error")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -109,7 +110,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// при правильном имени метрики, помещаем метрику в хранилище
 	if req.ID == "" {
-		logger.Log.Error("got metric with bad name")
+		logger.Log.Info("HandlePostUpdate: got metric with bad name")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -125,7 +126,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 
 	status := h.MemStorage.Put(ctx, metricType, metricName, metricValue)
 	if status != http.StatusOK {
-		logger.Log.Error("metric put error")
+		logger.Log.Info("HandlePostUpdate: metric put error")
 		w.WriteHeader(status)
 		return
 	}
@@ -133,7 +134,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 	// заполняем модель ответа
 	newValue, status := h.MemStorage.Get(ctx, metricType, metricName)
 	if status != http.StatusOK {
-		logger.Log.Info("metric get error")
+		logger.Log.Info("HandlePostUpdate: metric get error")
 		w.WriteHeader(status)
 		return
 	}
@@ -164,7 +165,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 			Delta: &v,
 		}
 	default:
-		logger.Log.Info("got wrong metric type")
+		logger.Log.Info("HandlePostUpdate: got wrong metric type")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
