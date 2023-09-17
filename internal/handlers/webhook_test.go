@@ -1,15 +1,20 @@
 package handlers
 
 import (
+	"context"
+	"database/sql"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var ps string = "postgresql://localhost:5432/metrics"
 
 func testRequest(t *testing.T, ts *httptest.Server, method,
 	path string) (*http.Response, string) {
@@ -28,9 +33,13 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 
 func TestCounterPost(t *testing.T) {
 	// запуск сервера
-	ms := storage.NewMemStorage()
-	h := NewWebhook(ms)
-	ts := httptest.NewServer(h.Route())
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
+	db, err := sql.Open("pgx", ps)
+	require.NoError(t, err)
+	defer db.Close()
+	h := NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
 	type want struct {
@@ -84,9 +93,13 @@ func TestCounterPost(t *testing.T) {
 
 func TestGaugePost(t *testing.T) {
 	// запуск сервера
-	ms := storage.NewMemStorage()
-	h := NewWebhook(ms)
-	ts := httptest.NewServer(h.Route())
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
+	db, err := sql.Open("pgx", ps)
+	require.NoError(t, err)
+	defer db.Close()
+	h := NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
 	type want struct {
@@ -140,9 +153,13 @@ func TestGaugePost(t *testing.T) {
 
 func TestGaugeGet(t *testing.T) {
 	// запуск сервера
-	ms := storage.NewMemStorage()
-	h := NewWebhook(ms)
-	ts := httptest.NewServer(h.Route())
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
+	db, err := sql.Open("pgx", ps)
+	require.NoError(t, err)
+	defer db.Close()
+	h := NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
 	type want struct {
@@ -214,9 +231,13 @@ func TestGaugeGet(t *testing.T) {
 
 func TestMainPage(t *testing.T) {
 	// запуск сервера
-	ms := storage.NewMemStorage()
-	h := NewWebhook(ms)
-	ts := httptest.NewServer(h.Route())
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
+	db, err := sql.Open("pgx", ps)
+	require.NoError(t, err)
+	defer db.Close()
+	h := NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
 	type want struct {

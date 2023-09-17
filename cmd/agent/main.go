@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/agent"
@@ -9,14 +10,16 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	// Инициализация логера
-	if err := logger.Initialize("Info"); err != nil {
+	if err := logger.Initialize(ctx, "Info"); err != nil {
 		logger.Log.Error("main: logger initialization error", zap.Error(err))
 	}
 	defer logger.Log.Sync()
 
 	// Парсинг флагов
-	cfg, err := agent.ParseFlags()
+	cfg, err := agent.ParseFlags(ctx)
 	if err != nil {
 		logger.Log.Error("main: parse flags error", zap.Error(err))
 	}
@@ -26,13 +29,13 @@ func main() {
 	reportInterval := time.Duration(cfg.ReportInterval) * time.Second
 
 	// Хранилище метрик
-	statsStorage := agent.NewStatStorage()
+	statsStorage := agent.NewStatStorage(ctx)
 
 	// Пауза для ожидания запуска сервера
 
 	c := make(chan int)
 	// Периодический опрос и отправка метрик
-	go agent.StatsRoutine(statsStorage, pollInterval, reportInterval, cfg.Address, c)
+	go agent.StatsRoutine(ctx, statsStorage, pollInterval, reportInterval, cfg.Address, c)
 
 	for {
 		_, ok := <-c

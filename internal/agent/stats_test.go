@@ -1,17 +1,23 @@
 package agent
 
 import (
+	"context"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
 	"strings"
 	"testing"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/handlers"
 	"github.com/pavlegich/metrics-alerting/internal/models"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+var ps string = "postgresql://localhost:5432/metrics"
 
 func TestStatStorage_Update(t *testing.T) {
 	var ms runtime.MemStats
@@ -60,7 +66,7 @@ func TestStatStorage_Update(t *testing.T) {
 			st := &StatStorage{
 				stats: tt.fields.stats,
 			}
-			err := st.Update(tt.args.memStats, tt.args.count, tt.args.rand)
+			err := st.Update(context.Background(), tt.args.memStats, tt.args.count, tt.args.rand)
 			if !tt.want {
 				assert.NoError(t, err)
 				return
@@ -72,14 +78,18 @@ func TestStatStorage_Update(t *testing.T) {
 
 func TestStatsStorage_New(t *testing.T) {
 	want := &StatStorage{stats: make(map[string]models.Metrics)}
-	assert.Equal(t, want, NewStatStorage())
+	assert.Equal(t, want, NewStatStorage(context.Background()))
 }
 
 func TestMemStorage_Send(t *testing.T) {
 	// запуск сервера
-	ms := storage.NewMemStorage()
-	h := handlers.NewWebhook(ms)
-	ts := httptest.NewServer(h.Route())
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
+	db, err := sql.Open("pgx", ps)
+	require.NoError(t, err)
+	defer db.Close()
+	h := handlers.NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 	addr, _ := strings.CutPrefix(ts.URL, "http://")
 	gaugeValue := float64(4.1)
@@ -146,7 +156,7 @@ func TestMemStorage_Send(t *testing.T) {
 			st := &StatStorage{
 				stats: tc.fields.stats,
 			}
-			err := st.Send(tc.address)
+			err := st.SendJSON(ctx, tc.address)
 			if !tc.want {
 				assert.NoError(t, err)
 				return
