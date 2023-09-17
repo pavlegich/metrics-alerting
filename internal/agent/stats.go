@@ -107,7 +107,7 @@ func Send(ctx context.Context, target string, key string, stats ...models.Metric
 		return fmt.Errorf("Send: new post request %w", err)
 	}
 
-	fmt.Printf("agent key: '%s'", key)
+	fmt.Printf("agent key: '%s'\n", key)
 	if key != "" {
 		hash, err := sign.Sign(req, []byte(key))
 		if err != nil {
@@ -115,6 +115,7 @@ func Send(ctx context.Context, target string, key string, stats ...models.Metric
 		}
 		r.Header.Set("HashSHA256", hex.EncodeToString(hash))
 	}
+	fmt.Printf("HashSHA256: '%s'\n", r.Header.Get("HashSHA256"))
 
 	r.Header.Set("Content-Encoding", "gzip")
 	r.Header.Set("Accept-Encoding", "gzip")

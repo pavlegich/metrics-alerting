@@ -32,6 +32,8 @@ func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Printf("updates body: %v\n", req)
+
 	for _, metric := range req {
 		// проверяем, то пришел запрос понятного типа
 		if metric.MType != "gauge" && metric.MType != "counter" {
@@ -99,6 +101,8 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	fmt.Printf("update body: %v\n", req)
 
 	// проверяем, то пришел запрос понятного типа
 	if req.MType != "gauge" && req.MType != "counter" {

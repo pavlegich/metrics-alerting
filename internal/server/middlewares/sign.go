@@ -14,7 +14,9 @@ import (
 
 func WithSign(h http.Handler) http.Handler {
 	signFn := func(w http.ResponseWriter, r *http.Request) {
-		if models.KEY != "" {
+		got := r.Header.Get("HashSHA256")
+
+		if got != "" {
 			var buf bytes.Buffer
 			_, err := buf.ReadFrom(r.Body)
 			if err != nil {
@@ -28,11 +30,10 @@ func WithSign(h http.Handler) http.Handler {
 				return
 			}
 
-			got := r.Header.Get("HashSHA256")
 			want := hex.EncodeToString(hash)
 
-			fmt.Printf("server key: '%s'", models.KEY)
-			fmt.Printf("got: '%s'; want: '%s'", got, want)
+			fmt.Printf("server key: '%s'\n", models.KEY)
+			fmt.Printf("got: '%s'; want: '%s'\n", got, want)
 
 			if want != got {
 				logger.Log.Info("WithSign: hashes not equal")
