@@ -60,7 +60,7 @@ func Run() error {
 	webhook := handlers.NewWebhook(ctx, memStorage, db)
 
 	if cfg.Key != "" {
-		models.KEY = cfg.Key
+		models.Key = cfg.Key
 	}
 
 	// Загрузка данных из файла

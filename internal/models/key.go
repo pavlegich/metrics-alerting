@@ -1,3 +1,3 @@
 package models
 
-var KEY string
+var Key string

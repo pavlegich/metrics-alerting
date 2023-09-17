@@ -3,7 +3,6 @@ package middlewares
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -16,7 +15,7 @@ func WithSign(h http.Handler) http.Handler {
 	signFn := func(w http.ResponseWriter, r *http.Request) {
 		got := r.Header.Get("HashSHA256")
 
-		if got != "" {
+		if got != "" && models.Key != "" {
 			var buf bytes.Buffer
 			_, err := buf.ReadFrom(r.Body)
 			if err != nil {
@@ -24,16 +23,13 @@ func WithSign(h http.Handler) http.Handler {
 				return
 			}
 			r.Body = io.NopCloser(&buf)
-			hash, err := sign.Sign(buf.Bytes(), []byte(models.KEY))
+			hash, err := sign.Sign(buf.Bytes(), []byte(models.Key))
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
 			want := hex.EncodeToString(hash)
-
-			fmt.Printf("server key: '%s'\n", models.KEY)
-			fmt.Printf("got: '%s'; want: '%s'\n", got, want)
 
 			if want != got {
 				logger.Log.Info("WithSign: hashes not equal")
@@ -42,7 +38,11 @@ func WithSign(h http.Handler) http.Handler {
 			}
 		}
 
-		h.ServeHTTP(w, r)
+		sw := sign.SigningResponseWriter{
+			ResponseWriter: w,
+		}
+
+		h.ServeHTTP(&sw, r)
 	}
 
 	return http.HandlerFunc(signFn)

@@ -107,7 +107,6 @@ func Send(ctx context.Context, target string, key string, stats ...models.Metric
 		return fmt.Errorf("Send: new post request %w", err)
 	}
 
-	fmt.Printf("agent key: '%s'\n", key)
 	if key != "" {
 		hash, err := sign.Sign(req, []byte(key))
 		if err != nil {

@@ -3,7 +3,11 @@ package sign
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"net/http"
+
+	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
 func Sign(msg []byte, key []byte) ([]byte, error) {
@@ -13,4 +17,23 @@ func Sign(msg []byte, key []byte) ([]byte, error) {
 		return nil, fmt.Errorf("Sign: write hash failed %w", err)
 	}
 	return h.Sum(nil), nil
+}
+
+// добавляем реализацию http.ResponseWriter
+type SigningResponseWriter struct {
+	http.ResponseWriter
+}
+
+func (r *SigningResponseWriter) Write(b []byte) (int, error) {
+	// записываем ответ, используя оригинальный http.ResponseWriter
+	size, err := r.ResponseWriter.Write(b)
+	if err != nil {
+		return size, fmt.Errorf("Write: response write %w", err)
+	}
+	hash, err := Sign([]byte(""), []byte(models.Key))
+	if err != nil {
+		return size, fmt.Errorf("Write: sign message failed %w", err)
+	}
+	r.Header().Set("HashSHA256", hex.EncodeToString(hash))
+	return size, nil
 }
