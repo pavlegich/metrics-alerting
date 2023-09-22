@@ -108,7 +108,7 @@ func Send(ctx context.Context, target string, key string, stats ...models.Metric
 	}
 
 	if key != "" {
-		hash, err := sign.Sign(req, []byte(key))
+		hash, err := sign.Sign(buf.Bytes(), []byte(key))
 		if err != nil {
 			return fmt.Errorf("Send: sign message failed %w", err)
 		}

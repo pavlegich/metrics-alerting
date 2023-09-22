@@ -25,8 +25,8 @@ func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, db *sq
 func (h *Webhook) Route(ctx context.Context) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middlewares.WithLogging)
-	r.Use(middlewares.GZIP)
 	r.Use(middlewares.WithSign)
+	r.Use(middlewares.GZIP)
 
 	r.Get("/", h.HandleMain)
 
