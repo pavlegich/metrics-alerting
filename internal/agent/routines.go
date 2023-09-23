@@ -77,19 +77,17 @@ func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c c
 
 func sendWorker(ctx context.Context, cfg *Config, jobs <-chan interfaces.StatsStorage) {
 	for j := range jobs {
-		if err := j.SendBatch(ctx, cfg.Address, cfg.Key); err != nil {
-			if errors.Is(err, syscall.ECONNREFUSED) {
-				intervals := []time.Duration{time.Second, 3 * time.Second, 5 * time.Second}
-				for _, interval := range intervals {
-					time.Sleep(interval)
-					if err := j.SendBatch(ctx, cfg.Address, cfg.Key); !errors.Is(err, syscall.ECONNREFUSED) {
-						break
-					}
-				}
-				logger.Log.Error("sendWorker: retriable error connection refused", zap.Error(err))
-			} else {
-				logger.Log.Error("sendWorker: send stats failed", zap.Error(err))
+		var err error = nil
+		intervals := []time.Duration{0, time.Second, 3 * time.Second, 5 * time.Second}
+		for _, interval := range intervals {
+			time.Sleep(interval)
+			err = j.SendBatch(ctx, cfg.Address, cfg.Key)
+			if !errors.Is(err, syscall.ECONNREFUSED) {
+				break
 			}
+		}
+		if err != nil {
+			logger.Log.Error("sendWorker: send stats failed", zap.Error(err))
 		}
 	}
 }
