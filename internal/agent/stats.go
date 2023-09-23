@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"runtime"
 	"strconv"
+	"sync"
 
 	"github.com/pavlegich/metrics-alerting/internal/infra/sign"
 	"github.com/pavlegich/metrics-alerting/internal/models"
@@ -17,6 +18,7 @@ import (
 
 type StatStorage struct {
 	stats map[string]models.Metrics
+	mu    sync.Mutex
 }
 
 func NewStatStorage(ctx context.Context) *StatStorage {
@@ -26,27 +28,32 @@ func NewStatStorage(ctx context.Context) *StatStorage {
 }
 
 func (st *StatStorage) Put(ctx context.Context, sType string, name string, value string) error {
+
 	switch sType {
 	case "gauge":
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return fmt.Errorf("Put: parse float64 gauge %w", err)
 		}
+		st.mu.Lock()
 		st.stats[name] = models.Metrics{
 			ID:    name,
 			MType: sType,
 			Value: &v,
 		}
+		st.mu.Unlock()
 	case "counter":
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return fmt.Errorf("Put: parse int64 counter %w", err)
 		}
+		st.mu.Lock()
 		st.stats[name] = models.Metrics{
 			ID:    name,
 			MType: sType,
 			Delta: &v,
 		}
+		st.mu.Unlock()
 	}
 
 	return nil
@@ -114,7 +121,6 @@ func Send(ctx context.Context, target string, key string, stats ...models.Metric
 		}
 		r.Header.Set("HashSHA256", hex.EncodeToString(hash))
 	}
-	fmt.Printf("HashSHA256: '%s'\n", r.Header.Get("HashSHA256"))
 
 	r.Header.Set("Content-Encoding", "gzip")
 	r.Header.Set("Accept-Encoding", "gzip")

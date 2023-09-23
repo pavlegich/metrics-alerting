@@ -27,8 +27,11 @@ func main() {
 	statsStorage := agent.NewStatStorage(ctx)
 
 	c := make(chan int)
+
 	// Периодический опрос и отправка метрик
-	go agent.StatsRoutine(ctx, statsStorage, cfg, c)
+	go agent.SendStats(ctx, statsStorage, cfg, c)
+	go agent.GoutilStats(ctx, statsStorage, cfg, c)
+	go agent.MemStats(ctx, statsStorage, cfg, c)
 
 	for {
 		_, ok := <-c
