@@ -17,17 +17,17 @@ import (
 	"go.uber.org/zap"
 )
 
-func GoutilStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
+func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
 	interval := time.Duration(cfg.PollInterval) * time.Second
 
 	for {
 		v, err := mem.VirtualMemory()
 		if err != nil {
-			logger.Log.Error("GoutilStats: get virtual memory stats", zap.Error(err))
+			logger.Log.Error("PollGoutilStats: get virtual memory stats failed", zap.Error(err))
 		}
 		c, err := cpu.PercentWithContext(ctx, 0, false)
 		if err != nil {
-			logger.Log.Error("GoutilStats: get cpu stats", zap.Error(err))
+			logger.Log.Error("PollGoutilStats: get cpu stats failed", zap.Error(err))
 		}
 
 		st.Put(ctx, "gauge", "TotalMemory", fmt.Sprintf("%v", v.Total))
@@ -38,7 +38,7 @@ func GoutilStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c
 	}
 }
 
-func MemStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
+func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
 	// Runtime метрики
 	var memStats runtime.MemStats
 
@@ -56,7 +56,7 @@ func MemStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c ch
 
 		// Опрос метрик
 		if err := st.Update(ctx, memStats, pollCount, randomValue); err != nil {
-			logger.Log.Error("StatsRoutine: stats update", zap.Error(err))
+			logger.Log.Error("PollMemStats: stats update", zap.Error(err))
 		}
 
 		time.Sleep(interval)
@@ -65,22 +65,31 @@ func MemStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c ch
 
 func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
 	interval := time.Duration(cfg.ReportInterval) * time.Second
-
+	jobs := make(chan interfaces.StatsStorage)
+	for w := 1; w <= cfg.RateLimit; w++ {
+		go sendWorker(ctx, cfg, jobs)
+	}
 	for {
-		if err := st.SendBatch(ctx, cfg.Address, cfg.Key); err != nil {
+		jobs <- st
+		time.Sleep(interval)
+	}
+}
+
+func sendWorker(ctx context.Context, cfg *Config, jobs <-chan interfaces.StatsStorage) {
+	for j := range jobs {
+		if err := j.SendBatch(ctx, cfg.Address, cfg.Key); err != nil {
 			if errors.Is(err, syscall.ECONNREFUSED) {
 				intervals := []time.Duration{time.Second, 3 * time.Second, 5 * time.Second}
 				for _, interval := range intervals {
 					time.Sleep(interval)
-					if err := st.SendBatch(ctx, cfg.Address, cfg.Key); !errors.Is(err, syscall.ECONNREFUSED) {
+					if err := j.SendBatch(ctx, cfg.Address, cfg.Key); !errors.Is(err, syscall.ECONNREFUSED) {
 						break
 					}
 				}
-				logger.Log.Error("StatsRoutine: retriable error connection refused", zap.Error(err))
+				logger.Log.Error("sendWorker: retriable error connection refused", zap.Error(err))
 			} else {
-				logger.Log.Error("StatsRoutine: send stats failed", zap.Error(err))
+				logger.Log.Error("sendWorker: send stats failed", zap.Error(err))
 			}
 		}
-		time.Sleep(interval)
 	}
 }

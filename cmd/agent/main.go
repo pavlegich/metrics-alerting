@@ -30,8 +30,8 @@ func main() {
 
 	// Периодический опрос и отправка метрик
 	go agent.SendStats(ctx, statsStorage, cfg, c)
-	go agent.GoutilStats(ctx, statsStorage, cfg, c)
-	go agent.MemStats(ctx, statsStorage, cfg, c)
+	go agent.PollCPUstats(ctx, statsStorage, cfg, c)
+	go agent.PollMemStats(ctx, statsStorage, cfg, c)
 
 	for {
 		_, ok := <-c

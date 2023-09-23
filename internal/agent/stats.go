@@ -18,7 +18,7 @@ import (
 
 type StatStorage struct {
 	stats map[string]models.Metrics
-	mu    sync.Mutex
+	mu    sync.RWMutex
 }
 
 func NewStatStorage(ctx context.Context) *StatStorage {
@@ -142,9 +142,11 @@ func (st *StatStorage) SendBatch(ctx context.Context, url string, key string) er
 
 	// Подготовка данных
 	stats := make([]models.Metrics, 0)
+	st.mu.RLock()
 	for _, s := range st.stats {
 		stats = append(stats, s)
 	}
+	st.mu.RUnlock()
 
 	if err := Send(ctx, target, key, stats...); err != nil {
 		return fmt.Errorf("SendBatch: send stats error %w", err)
