@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
@@ -20,11 +21,18 @@ func GoutilStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c
 	interval := time.Duration(cfg.PollInterval) * time.Second
 
 	for {
-		v, _ := mem.VirtualMemory()
+		v, err := mem.VirtualMemory()
+		if err != nil {
+			logger.Log.Error("GoutilStats: get virtual memory stats", zap.Error(err))
+		}
+		c, err := cpu.PercentWithContext(ctx, 0, false)
+		if err != nil {
+			logger.Log.Error("GoutilStats: get cpu stats", zap.Error(err))
+		}
 
 		st.Put(ctx, "gauge", "TotalMemory", fmt.Sprintf("%v", v.Total))
 		st.Put(ctx, "gauge", "FreeMemory", fmt.Sprintf("%v", v.Free))
-		st.Put(ctx, "gauge", "CPUutilization1", fmt.Sprintf("%v", v.Available))
+		st.Put(ctx, "gauge", "CPUutilization1", fmt.Sprintf("%v", c))
 
 		time.Sleep(interval)
 	}
@@ -73,7 +81,6 @@ func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c c
 				logger.Log.Error("StatsRoutine: send stats failed", zap.Error(err))
 			}
 		}
-
 		time.Sleep(interval)
 	}
 }
