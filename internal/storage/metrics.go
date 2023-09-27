@@ -7,11 +7,9 @@ import (
 	"strconv"
 )
 
-type (
-	MemStorage struct {
-		Metrics map[string]string
-	}
-)
+type MemStorage struct {
+	Metrics map[string]string
+}
 
 // метод Update обновляет хранилище данных в зависимости от запроса
 func (ms *MemStorage) Put(ctx context.Context, metricType string, metricName string, metricValue string) int {

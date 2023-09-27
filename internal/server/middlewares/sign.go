@@ -18,6 +18,7 @@ func WithSign(h http.Handler) http.Handler {
 		if got != "" && models.Key != "" {
 			var buf bytes.Buffer
 			_, err := buf.ReadFrom(r.Body)
+			defer r.Body.Close()
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
