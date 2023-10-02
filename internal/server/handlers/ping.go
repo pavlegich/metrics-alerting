@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/pavlegich/metrics-alerting/internal/logger"
+	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"go.uber.org/zap"
 )
 
@@ -11,7 +11,7 @@ func (h *Webhook) HandlePing(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if h.Database == nil {
-		logger.Log.Info("HandlePing: database is nil")
+		logger.Log.Info("HandlePing: database is not used")
 		w.WriteHeader(http.StatusOK)
 		return
 	}

@@ -12,6 +12,8 @@ type Config struct {
 	Address        string `env:"ADDRESS"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
 	ReportInterval int    `env:"REPORT_INTERVAL"`
+	Key            string `env:"KEY"`
+	RateLimit      int    `env:"RATE_LIMIT"`
 }
 
 func ParseFlags(ctx context.Context) (*Config, error) {
@@ -20,6 +22,8 @@ func ParseFlags(ctx context.Context) (*Config, error) {
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "HTTP-server endpoint address host:port")
 	flag.IntVar(&cfg.PollInterval, "p", 2, "Frequency of metrics polling from the runtime package")
 	flag.IntVar(&cfg.ReportInterval, "r", 10, "Frequency of sending metrics to HTTP-server")
+	flag.StringVar(&cfg.Key, "k", "", "Key for sign")
+	flag.IntVar(&cfg.RateLimit, "l", 1, "Number of simultaneous requests to the server")
 
 	flag.Parse()
 

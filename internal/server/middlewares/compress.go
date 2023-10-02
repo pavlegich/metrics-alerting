@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pavlegich/metrics-alerting/internal/compress"
+	"github.com/pavlegich/metrics-alerting/internal/infra/compress"
 )
 
 func GZIP(h http.Handler) http.Handler {

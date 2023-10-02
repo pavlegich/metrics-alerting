@@ -4,17 +4,21 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"runtime"
 	"strconv"
+	"sync"
 
+	"github.com/pavlegich/metrics-alerting/internal/infra/sign"
 	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
 type StatStorage struct {
 	stats map[string]models.Metrics
+	mu    sync.RWMutex
 }
 
 func NewStatStorage(ctx context.Context) *StatStorage {
@@ -24,27 +28,32 @@ func NewStatStorage(ctx context.Context) *StatStorage {
 }
 
 func (st *StatStorage) Put(ctx context.Context, sType string, name string, value string) error {
+
 	switch sType {
 	case "gauge":
 		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return fmt.Errorf("Put: parse float64 gauge %w", err)
 		}
+		st.mu.Lock()
 		st.stats[name] = models.Metrics{
 			ID:    name,
 			MType: sType,
 			Value: &v,
 		}
+		st.mu.Unlock()
 	case "counter":
 		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return fmt.Errorf("Put: parse int64 counter %w", err)
 		}
+		st.mu.Lock()
 		st.stats[name] = models.Metrics{
 			ID:    name,
 			MType: sType,
 			Delta: &v,
 		}
+		st.mu.Unlock()
 	}
 
 	return nil
@@ -85,7 +94,7 @@ func (st *StatStorage) Update(ctx context.Context, memStats runtime.MemStats, co
 	return nil
 }
 
-func Send(ctx context.Context, target string, stats ...models.Metrics) error {
+func Send(ctx context.Context, target string, key string, stats ...models.Metrics) error {
 	req, err := json.Marshal(stats)
 	if err != nil {
 		return fmt.Errorf("Send: request marshal %w", err)
@@ -105,6 +114,14 @@ func Send(ctx context.Context, target string, stats ...models.Metrics) error {
 		return fmt.Errorf("Send: new post request %w", err)
 	}
 
+	if key != "" {
+		hash, err := sign.Sign(buf.Bytes(), []byte(key))
+		if err != nil {
+			return fmt.Errorf("Send: sign message failed %w", err)
+		}
+		r.Header.Set("HashSHA256", hex.EncodeToString(hash))
+	}
+
 	r.Header.Set("Content-Encoding", "gzip")
 	r.Header.Set("Accept-Encoding", "gzip")
 	r.Header.Set("Content-Type", "application/json")
@@ -119,24 +136,26 @@ func Send(ctx context.Context, target string, stats ...models.Metrics) error {
 	return nil
 }
 
-func (st *StatStorage) SendBatch(ctx context.Context, url string) error {
+func (st *StatStorage) SendBatch(ctx context.Context, url string, key string) error {
 
 	target := "http://" + url + "/updates/"
 
 	// Подготовка данных
 	stats := make([]models.Metrics, 0)
+	st.mu.RLock()
 	for _, s := range st.stats {
 		stats = append(stats, s)
 	}
+	st.mu.RUnlock()
 
-	if err := Send(ctx, target, stats...); err != nil {
+	if err := Send(ctx, target, key, stats...); err != nil {
 		return fmt.Errorf("SendBatch: send stats error %w", err)
 	}
 
 	return nil
 }
 
-func (st *StatStorage) SendJSON(ctx context.Context, url string) error {
+func (st *StatStorage) SendJSON(ctx context.Context, url string, key string) error {
 	for _, stat := range st.stats {
 		target := "http://" + url + "/update/"
 
@@ -155,12 +174,12 @@ func (st *StatStorage) SendJSON(ctx context.Context, url string) error {
 	return nil
 }
 
-func (st *StatStorage) SendGZIP(ctx context.Context, url string) error {
+func (st *StatStorage) SendGZIP(ctx context.Context, url string, key string) error {
 
 	for _, stat := range st.stats {
 		target := "http://" + url + "/update/"
 
-		if err := Send(ctx, target, stat); err != nil {
+		if err := Send(ctx, target, key, stat); err != nil {
 			return fmt.Errorf("SendBatch: send stats error %w", err)
 		}
 	}
