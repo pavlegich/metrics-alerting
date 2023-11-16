@@ -9,8 +9,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pavlegich/metrics-alerting/internal/entities"
+	"github.com/pavlegich/metrics-alerting/internal/infra/database"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
-	"github.com/pavlegich/metrics-alerting/internal/models"
 	"github.com/pavlegich/metrics-alerting/internal/server"
 	"github.com/pavlegich/metrics-alerting/internal/server/handlers"
 	"github.com/pavlegich/metrics-alerting/internal/server/middlewares"
@@ -18,22 +19,23 @@ import (
 	"go.uber.org/zap"
 )
 
-// функция run запускает сервер
+// Run запускает сервер
 func Run() error {
 	ctx := context.Background()
 
+	// Логгер
 	if err := logger.Initialize(ctx, "Info"); err != nil {
 		return err
 	}
 	defer logger.Log.Sync()
 
-	// Считывание флагов
+	// Флаги
 	cfg, err := server.ParseFlags(ctx)
 	if err != nil {
 		return fmt.Errorf("Run: parse flags error %w", err)
 	}
 
-	// Установка интервалов
+	// Интервалы
 	var storeInterval time.Duration
 	if cfg.StoreInterval == 0 {
 		storeInterval = time.Duration(1) * time.Second
@@ -41,13 +43,13 @@ func Run() error {
 		storeInterval = time.Duration(cfg.StoreInterval) * time.Second
 	}
 
-	// Создание хранилища метрик
+	// Хранилище
 	memStorage := storage.NewMemStorage(ctx)
 
-	// Инициализация базы данных
+	// База данных
 	var db *sql.DB
 	if cfg.Database != "" {
-		db, err = storage.InitDB(ctx, cfg.Database)
+		db, err = database.Init(ctx, cfg.Database)
 		if err != nil {
 			logger.Log.Error("Run: database open failed", zap.Error(err))
 		}
@@ -56,14 +58,15 @@ func Run() error {
 		db = nil
 	}
 
-	// Создание нового хендлера для сервера
+	// Контроллер
 	webhook := handlers.NewWebhook(ctx, memStorage, db)
 
+	// Ключ
 	if cfg.Key != "" {
-		models.Key = cfg.Key
+		entities.Key = cfg.Key
 	}
 
-	// Загрузка данных из файла
+	// Файл
 	if cfg.Restore {
 		switch {
 		case cfg.Database != "":
@@ -85,11 +88,12 @@ func Run() error {
 		go server.SaveToFileRoutine(ctx, webhook, storeInterval, cfg.StoragePath)
 	}
 
+	// Роутер
 	r := chi.NewRouter()
 	r.Use(middlewares.Recovery)
 	r.Mount("/", webhook.Route(ctx))
 
-	logger.Log.Info("Running server", zap.String("address", cfg.Address))
+	logger.Log.Info("running server", zap.String("address", cfg.Address))
 
 	return http.ListenAndServe(cfg.Address, r)
 }

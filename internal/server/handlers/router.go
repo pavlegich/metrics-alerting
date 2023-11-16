@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"database/sql"
-	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
@@ -40,19 +39,5 @@ func (h *Webhook) Route(ctx context.Context) *chi.Mux {
 
 	r.Post("/updates/", h.HandlePostUpdates)
 
-	r.HandleFunc("/value/{metricType}/", h.HandleBadRequest)
-	r.HandleFunc("/update/{metricType}/", h.HandleNotFound)
-	r.HandleFunc("/update/{metricType}/{metricName}/", h.HandleNotFound)
-
 	return r
-}
-
-func (h *Webhook) HandleBadRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusBadRequest)
-}
-
-func (h *Webhook) HandleNotFound(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusNotFound)
 }

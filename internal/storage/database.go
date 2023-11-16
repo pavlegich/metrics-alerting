@@ -3,43 +3,15 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"embed"
 	"fmt"
 	"net/http"
 
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
-	"github.com/pressly/goose/v3"
 )
 
 type DBMetric struct {
 	ID    string
 	Value string
-}
-
-//go:embed migrations/*.sql
-var embedMigrations embed.FS
-
-func InitDB(ctx context.Context, path string) (*sql.DB, error) {
-	// Открытие и проверка базы данных
-	db, err := sql.Open("pgx", path)
-	if err != nil {
-		return nil, fmt.Errorf("InitDB: couldn't open database %w", err)
-	}
-
-	if err := db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("InitDB: connection with database is died %w", err)
-	}
-
-	// Миграции
-	goose.SetBaseFS(embedMigrations)
-	if err := goose.SetDialect("postgres"); err != nil {
-		return nil, fmt.Errorf("InitDB: goose set dialect failed %w", err)
-	}
-	if err := goose.Up(db, "migrations"); err != nil {
-		return nil, fmt.Errorf("InitDB: goose up failed %w", err)
-	}
-
-	return db, nil
 }
 
 func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) error {

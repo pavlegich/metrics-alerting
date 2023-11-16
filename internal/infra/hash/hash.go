@@ -1,4 +1,4 @@
-package sign
+package hash
 
 import (
 	"crypto/hmac"
@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/pavlegich/metrics-alerting/internal/models"
+	"github.com/pavlegich/metrics-alerting/internal/entities"
 )
 
 func Sign(msg []byte, key []byte) ([]byte, error) {
@@ -30,7 +30,7 @@ func (r *SigningResponseWriter) Write(b []byte) (int, error) {
 	if err != nil {
 		return size, fmt.Errorf("Write: response write %w", err)
 	}
-	hash, err := Sign([]byte(""), []byte(models.Key))
+	hash, err := Sign([]byte(""), []byte(entities.Key))
 	if err != nil {
 		return size, fmt.Errorf("Write: sign message failed %w", err)
 	}

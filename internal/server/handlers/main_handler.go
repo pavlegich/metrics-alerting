@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/pavlegich/metrics-alerting/internal/models"
+	"github.com/pavlegich/metrics-alerting/internal/entities"
 )
 
 func (h *Webhook) HandleMain(w http.ResponseWriter, r *http.Request) {
@@ -15,11 +15,11 @@ func (h *Webhook) HandleMain(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
 		return
 	}
-	table := models.NewTable()
+	table := entities.NewTable()
 	for metric, value := range metrics {
 		table.Put(metric, value)
 	}
-	tmpl, err := template.New("index").Parse(models.IndexTemplate)
+	tmpl, err := template.New("index").Parse(entities.IndexTemplate)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

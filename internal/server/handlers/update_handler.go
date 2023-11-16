@@ -8,14 +8,14 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
-	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
 func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	req := make([]models.Metrics, 0)
+	req := make([]entities.Metrics, 0)
 
 	// десериализуем запрос в структуру модели
 	var buf bytes.Buffer
@@ -85,7 +85,7 @@ func (h *Webhook) HandlePostMetric(w http.ResponseWriter, r *http.Request) {
 func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var req models.Metrics
+	var req entities.Metrics
 
 	// десериализуем запрос в структуру модели
 	var buf bytes.Buffer
@@ -140,7 +140,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var resp models.Metrics
+	var resp entities.Metrics
 
 	switch metricType {
 	case "gauge":
@@ -149,7 +149,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		resp = models.Metrics{
+		resp = entities.Metrics{
 			ID:    metricName,
 			MType: metricType,
 			Value: &v,
@@ -160,7 +160,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		resp = models.Metrics{
+		resp = entities.Metrics{
 			ID:    metricName,
 			MType: metricType,
 			Delta: &v,

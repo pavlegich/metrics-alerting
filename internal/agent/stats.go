@@ -12,18 +12,18 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/pavlegich/metrics-alerting/internal/infra/sign"
-	"github.com/pavlegich/metrics-alerting/internal/models"
+	"github.com/pavlegich/metrics-alerting/internal/entities"
+	"github.com/pavlegich/metrics-alerting/internal/infra/hash"
 )
 
 type StatStorage struct {
-	stats map[string]models.Metrics
+	stats map[string]entities.Metrics
 	mu    sync.RWMutex
 }
 
 func NewStatStorage(ctx context.Context) *StatStorage {
 	return &StatStorage{
-		stats: make(map[string]models.Metrics),
+		stats: make(map[string]entities.Metrics),
 	}
 }
 
@@ -36,7 +36,7 @@ func (st *StatStorage) Put(ctx context.Context, sType string, name string, value
 			return fmt.Errorf("Put: parse float64 gauge %w", err)
 		}
 		st.mu.Lock()
-		st.stats[name] = models.Metrics{
+		st.stats[name] = entities.Metrics{
 			ID:    name,
 			MType: sType,
 			Value: &v,
@@ -48,7 +48,7 @@ func (st *StatStorage) Put(ctx context.Context, sType string, name string, value
 			return fmt.Errorf("Put: parse int64 counter %w", err)
 		}
 		st.mu.Lock()
-		st.stats[name] = models.Metrics{
+		st.stats[name] = entities.Metrics{
 			ID:    name,
 			MType: sType,
 			Delta: &v,
@@ -94,7 +94,7 @@ func (st *StatStorage) Update(ctx context.Context, memStats runtime.MemStats, co
 	return nil
 }
 
-func Send(ctx context.Context, target string, key string, stats ...models.Metrics) error {
+func Send(ctx context.Context, target string, key string, stats ...entities.Metrics) error {
 	req, err := json.Marshal(stats)
 	if err != nil {
 		return fmt.Errorf("Send: request marshal %w", err)
@@ -115,7 +115,7 @@ func Send(ctx context.Context, target string, key string, stats ...models.Metric
 	}
 
 	if key != "" {
-		hash, err := sign.Sign(buf.Bytes(), []byte(key))
+		hash, err := hash.Sign(buf.Bytes(), []byte(key))
 		if err != nil {
 			return fmt.Errorf("Send: sign message failed %w", err)
 		}
@@ -141,7 +141,7 @@ func (st *StatStorage) SendBatch(ctx context.Context, url string, key string) er
 	target := "http://" + url + "/updates/"
 
 	// Подготовка данных
-	stats := make([]models.Metrics, 0)
+	stats := make([]entities.Metrics, 0)
 	st.mu.RLock()
 	for _, s := range st.stats {
 		stats = append(stats, s)

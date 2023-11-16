@@ -1,4 +1,4 @@
-package models
+package entities
 
 const IndexTemplate = "<html><body><table><tr><th>Название</th><th>Значение</th></tr>" +
 	"{{range .Rows}}<tr><td>{{.Name}}</td><td>{{.Value}}</td></tr>{{end}}</table></body></html>"
