@@ -45,6 +45,8 @@ func ExampleWebhook_HandleGetMetric() {
 
 	// Получение ответа
 	resp := w.Result()
+	defer resp.Body.Close()
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("read body failed %w", err)
@@ -99,6 +101,8 @@ func ExampleWebhook_HandlePostValue() {
 
 	// Получение ответа
 	resp := w.Result()
+	defer resp.Body.Close()
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("read body failed %w", err)

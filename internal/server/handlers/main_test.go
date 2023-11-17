@@ -36,6 +36,7 @@ func ExampleWebhook_HandleMain() {
 
 	// Получение ответа
 	resp := w.Result()
+	defer resp.Body.Close()
 
 	fmt.Println(resp.Header.Get("Content-Type"))
 	fmt.Println(resp.StatusCode)

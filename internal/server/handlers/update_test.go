@@ -57,6 +57,7 @@ func ExampleWebhook_HandlePostUpdates() {
 
 	// Получение ответа
 	resp := w.Result()
+	defer resp.Body.Close()
 
 	fmt.Println(resp.StatusCode)
 
@@ -90,6 +91,7 @@ func ExampleWebhook_HandlePostMetric() {
 
 	// Получение ответа
 	resp := w.Result()
+	defer resp.Body.Close()
 
 	fmt.Println(resp.StatusCode)
 
@@ -135,6 +137,8 @@ func ExampleWebhook_HandlePostUpdate() {
 
 	// Получение ответа
 	resp := w.Result()
+	defer resp.Body.Close()
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("read body failed %w", err)

@@ -36,6 +36,7 @@ func ExampleWebhook_HandlePing() {
 
 	// Получение ответа
 	resp := w.Result()
+	defer resp.Body.Close()
 
 	fmt.Println(resp.StatusCode)
 
