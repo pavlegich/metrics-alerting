@@ -8,6 +8,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+// Config содержит значения флагов и переменных окружения агента.
 type Config struct {
 	Address        string `env:"ADDRESS"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
@@ -16,6 +17,8 @@ type Config struct {
 	RateLimit      int    `env:"RATE_LIMIT"`
 }
 
+// ParseFlags обрабатывает введённые значения флагов и переменных окружения
+// при запуске агента.
 func ParseFlags(ctx context.Context) (*Config, error) {
 	cfg := &Config{}
 

@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Recovery восстанавливает работу в случае паники при запуске сервера.
 func Recovery(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {

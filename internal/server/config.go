@@ -8,6 +8,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+// Config содержит значения флагов и переменных окружения сервера.
 type Config struct {
 	Address       string `env:"ADDRESS"`
 	StoreInterval int    `env:"STORE_INTERVAL"`
@@ -17,6 +18,8 @@ type Config struct {
 	Key           string `env:"KEY"`
 }
 
+// ParseFlags обрабатывает введённые значения флагов и переменных окружения
+// при запуск сервера.
 func ParseFlags(ctx context.Context) (*Config, error) {
 	cfg := &Config{}
 

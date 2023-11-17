@@ -7,11 +7,18 @@ import (
 	"strconv"
 )
 
+// MemStorage хранит данные метрик сервера.
 type MemStorage struct {
 	Metrics map[string]string
 }
 
-// метод Update обновляет хранилище данных в зависимости от запроса
+// NewMemStorage создаёт новое хранилище метрик сервера.
+func NewMemStorage(ctx context.Context) *MemStorage {
+	return &MemStorage{make(map[string]string)}
+}
+
+// Put обрабатывает данные метрики, в случае успеха сохраняет
+// в хранилище сервера.
 func (ms *MemStorage) Put(ctx context.Context, metricType string, metricName string, metricValue string) int {
 	if metricName == "" {
 		return http.StatusNotFound
@@ -48,14 +55,7 @@ func (ms *MemStorage) Put(ctx context.Context, metricType string, metricName str
 	return http.StatusOK
 }
 
-func NewMemStorage(ctx context.Context) *MemStorage {
-	return &MemStorage{make(map[string]string)}
-}
-
-func (ms *MemStorage) GetAll(ctx context.Context) (map[string]string, int) {
-	return ms.Metrics, http.StatusOK
-}
-
+// Get получает из хранилища значение указанной метрики и возвращает это значение.
 func (ms *MemStorage) Get(ctx context.Context, metricType string, metricName string) (string, int) {
 	if (metricType != "gauge") && (metricType != "counter") {
 		return "", http.StatusNotImplemented
@@ -65,4 +65,9 @@ func (ms *MemStorage) Get(ctx context.Context, metricType string, metricName str
 		return "", http.StatusNotFound
 	}
 	return value, http.StatusOK
+}
+
+// GetAll возвращает все метрики из хранилища.
+func (ms *MemStorage) GetAll(ctx context.Context) (map[string]string, int) {
+	return ms.Metrics, http.StatusOK
 }

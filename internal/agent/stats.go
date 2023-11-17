@@ -16,17 +16,20 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/infra/hash"
 )
 
+// StatsStorage хранит метрики агента.
 type StatStorage struct {
 	stats map[string]entities.Metrics
 	mu    sync.RWMutex
 }
 
+// NewStatStorage создаёт новый объект хранилища агента.
 func NewStatStorage(ctx context.Context) *StatStorage {
 	return &StatStorage{
 		stats: make(map[string]entities.Metrics),
 	}
 }
 
+// Put обрабатывает типы метрик gauge и counter, сохраняет их в хранилище.
 func (st *StatStorage) Put(ctx context.Context, sType string, name string, value string) error {
 
 	switch sType {
@@ -59,6 +62,7 @@ func (st *StatStorage) Put(ctx context.Context, sType string, name string, value
 	return nil
 }
 
+// Update сохраняет необходимые метрики runtime, счётчик и случайное число в хранилище агента.
 func (st *StatStorage) Update(ctx context.Context, memStats runtime.MemStats, count int, rand float64) error {
 
 	st.Put(ctx, "gauge", "Alloc", fmt.Sprintf("%v", memStats.Alloc))
@@ -94,6 +98,8 @@ func (st *StatStorage) Update(ctx context.Context, memStats runtime.MemStats, co
 	return nil
 }
 
+// Send конвертирует метрики в JSON формат, сжимает и подписыает данные,
+// формирует запрос POST на указанный адрес и отправляет данные.
 func Send(ctx context.Context, target string, key string, stats ...entities.Metrics) error {
 	req, err := json.Marshal(stats)
 	if err != nil {
@@ -136,6 +142,7 @@ func Send(ctx context.Context, target string, key string, stats ...entities.Metr
 	return nil
 }
 
+// SendBatch получает все метрики из хранилища и отправляет их по указанному адресу.
 func (st *StatStorage) SendBatch(ctx context.Context, url string, key string) error {
 
 	target := "http://" + url + "/updates/"
@@ -155,6 +162,8 @@ func (st *StatStorage) SendBatch(ctx context.Context, url string, key string) er
 	return nil
 }
 
+// SendJSON отправляет отдельно каждую метрику из хранилища в формате JSON
+// по указанному адресу.
 func (st *StatStorage) SendJSON(ctx context.Context, url string, key string) error {
 	for _, stat := range st.stats {
 		target := "http://" + url + "/update/"
@@ -174,6 +183,8 @@ func (st *StatStorage) SendJSON(ctx context.Context, url string, key string) err
 	return nil
 }
 
+// SendGZIP отправляет отдельно каждую метрику из хранилища
+// по указанному адресу, предварительно сжимая данные.
 func (st *StatStorage) SendGZIP(ctx context.Context, url string, key string) error {
 
 	for _, stat := range st.stats {

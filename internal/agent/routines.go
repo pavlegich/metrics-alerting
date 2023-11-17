@@ -17,6 +17,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// PollCPUStats считывает информацию о занимаемой памяти с указанным интервалом времени
+// и обновляет данные в хранилище.
 func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
 	interval := time.Duration(cfg.PollInterval) * time.Second
 
@@ -38,6 +40,8 @@ func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, 
 	}
 }
 
+// PollMemStats считывает метрики с указанным интервалом времени
+// и обновляет данные в хранилище.
 func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
 	// Runtime метрики
 	var memStats runtime.MemStats
@@ -54,7 +58,7 @@ func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, 
 		pollCount += 1
 		randomValue = rand.Float64()
 
-		// Опрос метрик
+		// Обновление метрик
 		if err := st.Update(ctx, memStats, pollCount, randomValue); err != nil {
 			logger.Log.Error("PollMemStats: stats update", zap.Error(err))
 		}
@@ -63,6 +67,8 @@ func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, 
 	}
 }
 
+// SendStats создаёт worker-ов и отправляет данные из хранилища в работу worker-ам
+// через канал с указанным интервалом.
 func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
 	interval := time.Duration(cfg.ReportInterval) * time.Second
 	jobs := make(chan interfaces.StatsStorage)
@@ -75,6 +81,8 @@ func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c c
 	}
 }
 
+// sendWorker принимает метрики из канала и отправляет их по указанному адресу.
+// Если соединение с сервером получить не удаётся, прерывает отправку метрик.
 func sendWorker(ctx context.Context, cfg *Config, jobs <-chan interfaces.StatsStorage) {
 	for j := range jobs {
 		var err error = nil

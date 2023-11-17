@@ -1,3 +1,4 @@
+// Пакет app содержит основные методы для запуска сервера.
 package app
 
 import (
@@ -5,9 +6,13 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/database"
@@ -19,12 +24,12 @@ import (
 	"go.uber.org/zap"
 )
 
-// Run запускает сервер
-func Run() error {
+// Run инициализирует основные компоненты и запускает сервер.
+func Run(done chan bool) error {
 	ctx := context.Background()
 
 	// Логгер
-	if err := logger.Initialize(ctx, "Info"); err != nil {
+	if err := logger.Init(ctx, "Info"); err != nil {
 		return err
 	}
 	defer logger.Log.Sync()
@@ -61,12 +66,12 @@ func Run() error {
 	// Контроллер
 	webhook := handlers.NewWebhook(ctx, memStorage, db)
 
-	// Ключ
+	// Ключ для хеширования
 	if cfg.Key != "" {
 		entities.Key = cfg.Key
 	}
 
-	// Файл
+	// Получение метрик из базы данных или файла
 	if cfg.Restore {
 		switch {
 		case cfg.Database != "":
@@ -92,8 +97,29 @@ func Run() error {
 	r := chi.NewRouter()
 	r.Use(middlewares.Recovery)
 	r.Mount("/", webhook.Route(ctx))
+	r.Mount("/debug", middleware.Profiler())
 
-	logger.Log.Info("running server", zap.String("address", cfg.Address))
+	// Сервер
+	srv := http.Server{
+		Addr:    cfg.Address,
+		Handler: r,
+	}
 
-	return http.ListenAndServe(cfg.Address, r)
+	logger.Log.Info("running server", zap.String("addr", cfg.Address))
+
+	// Завершение программы
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-sigs
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.Log.Error("server shutdown failed",
+				zap.Error(err))
+		}
+		logger.Log.Info("shutting down gracefully",
+			zap.String("signal", sig.String()))
+		done <- true
+	}()
+
+	return srv.ListenAndServe()
 }

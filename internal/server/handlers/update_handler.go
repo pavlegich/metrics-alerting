@@ -12,6 +12,7 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 )
 
+// HandlePostUpdates обрабатывает и сохраняет полученные метрики.
 func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -70,6 +71,7 @@ func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandlePostMetric обрабатывает и сохраняет полученную метрику.
 func (h *Webhook) HandlePostMetric(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -82,6 +84,9 @@ func (h *Webhook) HandlePostMetric(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(status)
 }
 
+// HandlePostMetric обрабатывает и сохраняет полученную в JSON формате метрику.
+// В случае успешного сохранения обработчик получает новое значение метрики
+// из хранилища и отправляет в ответ метрику в JSON формате.
 func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

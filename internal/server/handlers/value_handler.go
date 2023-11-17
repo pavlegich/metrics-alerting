@@ -11,6 +11,8 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 )
 
+// HandleGetMetric обрабатывает запрос на получение метрики,
+// отправляет в ответ полученное значение метрики из хранилища.
 func (h *Webhook) HandleGetMetric(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -26,6 +28,10 @@ func (h *Webhook) HandleGetMetric(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(value))
 }
 
+// HandlePostValue обрабатывает запрос получения значения метрики.
+// Обработчик принимает в JSON формате название и тип метрики,
+// в случае успешного получения значения метрики из хранилища,
+// формирует и отправляет ответ с метрикой в JSON формате.
 func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -46,7 +52,7 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// проверяем, то пришел запрос понятного типа
+	// проверяем, что пришел запрос понятного типа
 	if req.MType != "gauge" && req.MType != "counter" {
 		logger.Log.Info("unsupported request type")
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -61,8 +67,6 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	metricName := req.ID
-
-	// fmt.Println(metricType, metricName)
 
 	// заполняем модель ответа
 	metricValue, status := h.MemStorage.Get(ctx, metricType, metricName)

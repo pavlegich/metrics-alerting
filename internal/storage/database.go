@@ -9,11 +9,14 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 )
 
+// DBMetric содержит название и значение метрики
+// для хранения в базе данных.
 type DBMetric struct {
 	ID    string
 	Value string
 }
 
+// SaveToDB сохраняет все метрики из хранилища сервера в базу данных.
 func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) error {
 	// Получение всех метрик из хранилища
 	metrics, status := ms.GetAll(ctx)
@@ -57,20 +60,16 @@ func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) erro
 	return nil
 }
 
+// LoadFromDB получает все метрики из хранилища
+// и сохраняет их в хранилище сервера.
 func LoadFromDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) error {
 	// Проверка базы данных
 	if err := db.PingContext(ctx); err != nil {
 		return fmt.Errorf("LoadFromDB: connection to database is died %w", err)
 	}
 
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("LoadFromDB: begin transaction failed %w", err)
-	}
-	defer tx.Rollback()
-
 	// Получение метрик из хранилища
-	rows, err := tx.QueryContext(ctx, "SELECT id, value FROM storage")
+	rows, err := db.QueryContext(ctx, "SELECT id, value FROM storage")
 	if err != nil {
 		return fmt.Errorf("LoadFromDB: read rows from table failed %w", err)
 	}
@@ -89,10 +88,6 @@ func LoadFromDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) er
 	err = rows.Err()
 	if err != nil {
 		return fmt.Errorf("LoadFromDB: rows.Err %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("LoadFromDB: commit transaction failed %w", err)
 	}
 
 	// Сохранение данных в локальном хранилище

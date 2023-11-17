@@ -11,6 +11,10 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 )
 
+// WithSign обрабатывает запрос с учётом верно полученного хеша.
+// Обработчик формирует хеш из полученного тела запроса,
+// сравнивает с полученным в заголовке запроса хешем.
+// В случае неуспешной проверки прерывает обработку запроса.
 func WithSign(h http.Handler) http.Handler {
 	signFn := func(w http.ResponseWriter, r *http.Request) {
 		got := r.Header.Get("HashSHA256")

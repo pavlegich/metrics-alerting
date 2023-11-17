@@ -1,3 +1,4 @@
+// Пакет hash содержит объекты и методы для формирования хеша.
 package hash
 
 import (
@@ -10,6 +11,7 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 )
 
+// Sign формирует хеш из сообщения ключа.
 func Sign(msg []byte, key []byte) ([]byte, error) {
 	value := sha256.Sum256(msg)
 	h := hmac.New(sha256.New, key)
@@ -19,11 +21,13 @@ func Sign(msg []byte, key []byte) ([]byte, error) {
 	return h.Sum(nil), nil
 }
 
-// добавляем реализацию http.ResponseWriter
+// SigningResponseWriter содержит реализацию http.ResponseWriter.
 type SigningResponseWriter struct {
 	http.ResponseWriter
 }
 
+// Write реализует запись ответа, формирование и размещение хеша
+// в заголовок ответа.
 func (r *SigningResponseWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter
 	size, err := r.ResponseWriter.Write(b)

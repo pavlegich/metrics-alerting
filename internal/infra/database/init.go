@@ -1,3 +1,4 @@
+// Пакет database содержит методы для инициализации базы данных.
 package database
 
 import (
@@ -12,6 +13,7 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
+// Init инициализирует базу данных и создаёт таблицы из указанных миграций.
 func Init(ctx context.Context, path string) (*sql.DB, error) {
 	// Открытие и проверка базы данных
 	db, err := sql.Open("pgx", path)

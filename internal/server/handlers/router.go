@@ -9,11 +9,13 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/server/middlewares"
 )
 
+// Webhook содержит локальное хранилище метрик и базу данных для сервера.
 type Webhook struct {
 	MemStorage interfaces.MetricStorage
 	Database   *sql.DB
 }
 
+// NewWebhook создаёт новое хранилище сервера.
 func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, db *sql.DB) *Webhook {
 	return &Webhook{
 		MemStorage: memStorage,
@@ -21,11 +23,12 @@ func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, db *sq
 	}
 }
 
+// Route инициализирует обработчики запросов сервера.
 func (h *Webhook) Route(ctx context.Context) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middlewares.WithLogging)
 	r.Use(middlewares.WithSign)
-	r.Use(middlewares.GZIP)
+	r.Use(middlewares.WithCompress)
 
 	r.Get("/", h.HandleMain)
 

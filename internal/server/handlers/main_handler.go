@@ -7,6 +7,9 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 )
 
+// HandleMain обрабатывает запрос получения корневой веб-страницы,
+// формирумя страницу, содержащую таблицу с информацией о текущих
+// значениях метрик.
 func (h *Webhook) HandleMain(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
