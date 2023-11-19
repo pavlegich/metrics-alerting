@@ -19,7 +19,7 @@ type (
 	// MetrciStorage содержит методы для работы с метрики на сервере.
 	MetricStorage interface {
 		Put(ctx context.Context, metricType string, metricName string, metricValue string) int
-		GetAll(ctx context.Context) (map[string]string, int)
+		GetAll(ctx context.Context) map[string]string
 		Get(ctx context.Context, metricType string, metricName string) (string, int)
 	}
 )

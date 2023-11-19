@@ -24,11 +24,7 @@ func NewFileMetrics(ctx context.Context) *FileMetrics {
 // преобразует их в JSON формат и сохраняет в файл.
 func SaveToFile(ctx context.Context, path string, ms interfaces.MetricStorage) error {
 	// сериализуем структуру в JSON формат
-	metrics, status := ms.GetAll(ctx)
-	if status != http.StatusOK {
-		return fmt.Errorf("SaveToFile: metrics get error %v", status)
-	}
-
+	metrics := ms.GetAll(ctx)
 	storage := NewFileMetrics(ctx)
 	for m, v := range metrics {
 		storage.Metrics[m] = v

@@ -31,6 +31,58 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 	return resp, string(respBody)
 }
 
+func TestWebhook_HandleMain(t *testing.T) {
+	// запуск сервера
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
+	db, err := sql.Open("pgx", ps)
+	require.NoError(t, err)
+	defer db.Close()
+	h := NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
+	defer ts.Close()
+
+	type want struct {
+		code        int
+		contentType string
+		body        string
+	}
+	tests := []struct {
+		name          string
+		method        string
+		target        string
+		existedValues map[string]string
+		want          want
+	}{
+		{
+			name:   "main_page",
+			method: http.MethodGet,
+			target: "/",
+			existedValues: map[string]string{
+				"someMetric": "144.1",
+			},
+			want: want{
+				code:        http.StatusOK,
+				contentType: "text/html; charset=utf-8",
+				body:        "<td>someMetric</td><td>144.1</td>",
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h.MemStorage = &storage.MemStorage{
+				Metrics: tc.existedValues,
+			}
+			resp, get := testRequest(t, ts, tc.method, tc.target)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tc.want.code, resp.StatusCode)
+			assert.Equal(t, tc.want.contentType, resp.Header.Get("Content-Type"))
+			assert.Contains(t, get, tc.want.body)
+		})
+	}
+}
+
 func TestCounterPost(t *testing.T) {
 	// запуск сервера
 	ctx := context.Background()
@@ -225,58 +277,6 @@ func TestGaugeGet(t *testing.T) {
 			assert.Equal(t, tc.want.code, resp.StatusCode)
 			assert.Equal(t, tc.want.contentType, resp.Header.Get("Content-Type"))
 			assert.Equal(t, tc.want.body, get)
-		})
-	}
-}
-
-func TestMainPage(t *testing.T) {
-	// запуск сервера
-	ctx := context.Background()
-	ms := storage.NewMemStorage(ctx)
-	db, err := sql.Open("pgx", ps)
-	require.NoError(t, err)
-	defer db.Close()
-	h := NewWebhook(ctx, ms, db)
-	ts := httptest.NewServer(h.Route(ctx))
-	defer ts.Close()
-
-	type want struct {
-		code        int
-		contentType string
-		body        string
-	}
-	tests := []struct {
-		name          string
-		method        string
-		target        string
-		existedValues map[string]string
-		want          want
-	}{
-		{
-			name:   "main_page",
-			method: http.MethodGet,
-			target: "/",
-			existedValues: map[string]string{
-				"someMetric": "144.1",
-			},
-			want: want{
-				code:        http.StatusOK,
-				contentType: "text/html; charset=utf-8",
-				body:        "<td>someMetric</td><td>144.1</td>",
-			},
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			h.MemStorage = &storage.MemStorage{
-				Metrics: tc.existedValues,
-			}
-			resp, get := testRequest(t, ts, tc.method, tc.target)
-			defer resp.Body.Close()
-
-			assert.Equal(t, tc.want.code, resp.StatusCode)
-			assert.Equal(t, tc.want.contentType, resp.Header.Get("Content-Type"))
-			assert.Contains(t, get, tc.want.body)
 		})
 	}
 }

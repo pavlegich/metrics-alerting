@@ -38,7 +38,6 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 	var req entities.Metrics
 
 	// десериализуем запрос в структуру модели
-	logger.Log.Info("decoding request")
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
@@ -54,7 +53,7 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 
 	// проверяем, что пришел запрос понятного типа
 	if req.MType != "gauge" && req.MType != "counter" {
-		logger.Log.Info("unsupported request type")
+		logger.Log.Error("unsupported request type")
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
@@ -62,7 +61,7 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 
 	// при правильном имени метрики, помещаем метрику в хранилище
 	if req.ID == "" {
-		logger.Log.Info("got metric with bad name")
+		logger.Log.Error("got metric with bad name")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -72,7 +71,7 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 	metricValue, status := h.MemStorage.Get(ctx, metricType, metricName)
 
 	if status != http.StatusOK {
-		logger.Log.Info("metric get error")
+		logger.Log.Error("metric get error")
 		w.WriteHeader(status)
 		return
 	}

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
@@ -116,4 +117,80 @@ func ExampleWebhook_HandlePostValue() {
 	// application/json
 	// 200
 	// {"id":"Gauger","type":"gauge","value":124.4}
+}
+
+func BenchmarkWebhook_HandleGetMetric(b *testing.B) {
+	// Контекст
+	ctx := context.Background()
+
+	// Хранилище
+	ms := storage.NewMemStorage(ctx)
+
+	// База данных
+	ps := "postgresql://localhost:5432/metrics"
+	db, err := sql.Open("pgx", ps)
+	if err != nil {
+		fmt.Println("database open failed %w", err)
+	}
+	defer db.Close()
+
+	// Контроллер
+	h := NewWebhook(ctx, ms, db)
+	h.MemStorage = &storage.MemStorage{
+		Metrics: map[string]string{
+			"Gauger": "124.4",
+		},
+	}
+
+	// Запрос к серверу
+	url := `http://localhost:8080/value/gauge/Gauger`
+	req := httptest.NewRequest(http.MethodGet, url, nil)
+
+	for i := 0; i < b.N; i++ {
+		w := httptest.NewRecorder()
+		h.Route(ctx).ServeHTTP(w, req)
+	}
+}
+
+func BenchmarkWebhook_HandlePostValue(b *testing.B) {
+	// Контекст
+	ctx := context.Background()
+
+	// Хранилище
+	ms := storage.NewMemStorage(ctx)
+
+	// База данных
+	ps := "postgresql://localhost:5432/metrics"
+	db, err := sql.Open("pgx", ps)
+	if err != nil {
+		fmt.Println("database open failed %w", err)
+	}
+	defer db.Close()
+
+	// Контроллер
+	h := NewWebhook(ctx, ms, db)
+	h.MemStorage = &storage.MemStorage{
+		Metrics: map[string]string{
+			"Gauger": "124.4",
+		},
+	}
+
+	// Подготовка данных для запроса
+	url := `http://localhost:8080/value/`
+	m := entities.Metrics{
+		ID:    "Gauger",
+		MType: "gauge",
+	}
+	body, err := json.Marshal(m)
+	if err != nil {
+		fmt.Println("marshal body failed %w", err)
+	}
+
+	// Запрос к серверу
+	req := httptest.NewRequest(http.MethodPost, url, bytes.NewBuffer(body))
+
+	for i := 0; i < b.N; i++ {
+		w := httptest.NewRecorder()
+		h.Route(ctx).ServeHTTP(w, req)
+	}
 }

@@ -113,6 +113,18 @@ func TestMemStorage_Put(t *testing.T) {
 			},
 			want: http.StatusNotImplemented,
 		},
+		{
+			name: "put_empty_name",
+			fields: fields{
+				Metrics: map[string]string{},
+			},
+			args: args{
+				metricType:  "gauge",
+				metricName:  "",
+				metricValue: "84.4",
+			},
+			want: http.StatusNotFound,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -275,9 +287,8 @@ func TestMemStorage_GetAll(t *testing.T) {
 			ms := &MemStorage{
 				Metrics: tc.fields.Metrics,
 			}
-			get, status := ms.GetAll(context.Background())
+			get := ms.GetAll(context.Background())
 			assert.Equal(t, tc.want.metrics, get)
-			assert.Equal(t, tc.want.status, status)
 		})
 	}
 }

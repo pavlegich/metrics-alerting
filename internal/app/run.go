@@ -97,6 +97,8 @@ func Run(done chan bool) error {
 	r := chi.NewRouter()
 	r.Use(middlewares.Recovery)
 	r.Mount("/", webhook.Route(ctx))
+
+	// pprof-обработчик
 	r.Mount("/debug", middleware.Profiler())
 
 	// Сервер

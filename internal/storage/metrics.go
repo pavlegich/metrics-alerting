@@ -68,6 +68,6 @@ func (ms *MemStorage) Get(ctx context.Context, metricType string, metricName str
 }
 
 // GetAll возвращает все метрики из хранилища.
-func (ms *MemStorage) GetAll(ctx context.Context) (map[string]string, int) {
-	return ms.Metrics, http.StatusOK
+func (ms *MemStorage) GetAll(ctx context.Context) map[string]string {
+	return ms.Metrics
 }

@@ -12,12 +12,7 @@ import (
 // значениях метрик.
 func (h *Webhook) HandleMain(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
-	metrics, status := h.MemStorage.GetAll(ctx)
-	if status != http.StatusOK {
-		w.WriteHeader(status)
-		return
-	}
+	metrics := h.MemStorage.GetAll(ctx)
 	table := entities.NewTable()
 	for metric, value := range metrics {
 		table.Put(metric, value)
@@ -28,7 +23,7 @@ func (h *Webhook) HandleMain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(status)
+	w.WriteHeader(http.StatusOK)
 	if err := tmpl.Execute(w, table); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -19,10 +19,7 @@ type DBMetric struct {
 // SaveToDB сохраняет все метрики из хранилища сервера в базу данных.
 func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) error {
 	// Получение всех метрик из хранилища
-	metrics, status := ms.GetAll(ctx)
-	if status != http.StatusOK {
-		return fmt.Errorf("SaveToDB: metrics get error %v", status)
-	}
+	metrics := ms.GetAll(ctx)
 	DBMetrics := make(map[string]string)
 	for m, v := range metrics {
 		DBMetrics[m] = v

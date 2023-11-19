@@ -170,12 +170,12 @@ func (st *StatStorage) SendJSON(ctx context.Context, url string, key string) err
 
 		req, err := json.Marshal(stat)
 		if err != nil {
-			return fmt.Errorf("Send: request marshal %w", err)
+			return fmt.Errorf("SendJSON: marshal failed %w", err)
 		}
 
 		resp, err := http.Post(target, "application/json", bytes.NewBuffer(req))
 		if err != nil {
-			return fmt.Errorf("Send: response post %w", err)
+			return fmt.Errorf("SendJSON: response post %w", err)
 		}
 
 		resp.Body.Close()

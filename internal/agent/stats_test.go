@@ -19,6 +19,76 @@ import (
 
 var ps string = "postgresql://localhost:5432/metrics"
 
+func TestStatsStorage_New(t *testing.T) {
+	want := &StatStorage{stats: make(map[string]entities.Metrics)}
+	assert.Equal(t, want, NewStatStorage(context.Background()))
+}
+
+func TestStatStorage_Put(t *testing.T) {
+	ctx := context.Background()
+	type fields struct {
+		stats map[string]entities.Metrics
+	}
+	type args struct {
+		sType  string
+		sName  string
+		sValue string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "correct put",
+			fields: fields{
+				stats: map[string]entities.Metrics{},
+			},
+			args: args{
+				sType:  "gauge",
+				sName:  "Gauger",
+				sValue: "124.1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "incorrect gauge",
+			fields: fields{
+				stats: map[string]entities.Metrics{},
+			},
+			args: args{
+				sType:  "gauge",
+				sName:  "Gauger",
+				sValue: "value",
+			},
+			wantErr: true,
+		},
+		{
+			name: "incorrect counter",
+			fields: fields{
+				stats: map[string]entities.Metrics{},
+			},
+			args: args{
+				sType:  "counter",
+				sName:  "Counter",
+				sValue: "124.1",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			st := &StatStorage{
+				stats: tt.fields.stats,
+			}
+			if err := st.Put(ctx, tt.args.sType, tt.args.sName, tt.args.sValue); (err != nil) != tt.wantErr {
+				t.Errorf("StatStorage.Put() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestStatStorage_Update(t *testing.T) {
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
@@ -76,12 +146,90 @@ func TestStatStorage_Update(t *testing.T) {
 	}
 }
 
-func TestStatsStorage_New(t *testing.T) {
-	want := &StatStorage{stats: make(map[string]entities.Metrics)}
-	assert.Equal(t, want, NewStatStorage(context.Background()))
+func TestStatStorage_SendBatch(t *testing.T) {
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
+	db, err := sql.Open("pgx", ps)
+	require.NoError(t, err)
+	defer db.Close()
+	h := handlers.NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
+	defer ts.Close()
+	addr, _ := strings.CutPrefix(ts.URL, "http://")
+	gaugeValue := 4.1
+	counterValue := int64(3)
+
+	type fields struct {
+		stats map[string]entities.Metrics
+	}
+	type args struct {
+		url string
+		key string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "success",
+			fields: fields{
+				stats: map[string]entities.Metrics{
+					"Gauger": {
+						ID:    "Gauger",
+						MType: "gauge",
+						Value: &gaugeValue,
+					},
+					"Counter": {
+						ID:    "Counter",
+						MType: "counter",
+						Delta: &counterValue,
+					},
+				},
+			},
+			args: args{
+				url: addr,
+				key: "",
+			},
+			wantErr: false,
+		},
+		{
+			name: "wrong_url",
+			fields: fields{
+				stats: map[string]entities.Metrics{
+					"Gauger": {
+						ID:    "Gauger",
+						MType: "gauge",
+						Value: &gaugeValue,
+					},
+					"Counter": {
+						ID:    "Counter",
+						MType: "counter",
+						Delta: &counterValue,
+					},
+				},
+			},
+			args: args{
+				url: "localhost:443",
+				key: "",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			st := &StatStorage{
+				stats: tt.fields.stats,
+			}
+			if err := st.SendBatch(ctx, tt.args.url, tt.args.key); (err != nil) != tt.wantErr {
+				t.Errorf("StatStorage.SendBatch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
 
-func TestMemStorage_Send(t *testing.T) {
+func TestMemStorage_SendJSON(t *testing.T) {
 	// запуск сервера
 	ctx := context.Background()
 	ms := storage.NewMemStorage(ctx)
@@ -92,8 +240,7 @@ func TestMemStorage_Send(t *testing.T) {
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 	addr, _ := strings.CutPrefix(ts.URL, "http://")
-	gaugeValue := float64(4.1)
-	counterValue := int64(4)
+	gaugeValue := 4.1
 
 	type fields struct {
 		stats map[string]entities.Metrics
@@ -114,22 +261,6 @@ func TestMemStorage_Send(t *testing.T) {
 						ID:    "SomeMetric",
 						MType: "gauge",
 						Value: &gaugeValue,
-					},
-				},
-			},
-			method:  http.MethodPost,
-			address: addr,
-			key:     "",
-			want:    false,
-		},
-		{
-			name: "successful_counter_request",
-			fields: fields{
-				stats: map[string]entities.Metrics{
-					"SomeMetric": {
-						ID:    "SomeMetric",
-						MType: "counter",
-						Delta: &counterValue,
 					},
 				},
 			},
@@ -166,6 +297,89 @@ func TestMemStorage_Send(t *testing.T) {
 				return
 			}
 			assert.Error(t, err)
+		})
+	}
+}
+
+func TestStatStorage_SendGZIP(t *testing.T) {
+	ctx := context.Background()
+	ms := storage.NewMemStorage(ctx)
+	db, err := sql.Open("pgx", ps)
+	require.NoError(t, err)
+	defer db.Close()
+	h := handlers.NewWebhook(ctx, ms, db)
+	ts := httptest.NewServer(h.Route(ctx))
+	defer ts.Close()
+	addr, _ := strings.CutPrefix(ts.URL, "http://")
+	gaugeValue := 4.1
+	counterValue := int64(3)
+
+	type fields struct {
+		stats map[string]entities.Metrics
+	}
+	type args struct {
+		url string
+		key string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "success",
+			fields: fields{
+				stats: map[string]entities.Metrics{
+					"Gauger": {
+						ID:    "Gauger",
+						MType: "gauge",
+						Value: &gaugeValue,
+					},
+					"Counter": {
+						ID:    "Counter",
+						MType: "counter",
+						Delta: &counterValue,
+					},
+				},
+			},
+			args: args{
+				url: addr,
+				key: "",
+			},
+			wantErr: false,
+		},
+		{
+			name: "wrong_url",
+			fields: fields{
+				stats: map[string]entities.Metrics{
+					"Gauger": {
+						ID:    "Gauger",
+						MType: "gauge",
+						Value: &gaugeValue,
+					},
+					"Counter": {
+						ID:    "Counter",
+						MType: "counter",
+						Delta: &counterValue,
+					},
+				},
+			},
+			args: args{
+				url: "localhost:443",
+				key: "",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			st := &StatStorage{
+				stats: tt.fields.stats,
+			}
+			if err := st.SendGZIP(ctx, tt.args.url, tt.args.key); (err != nil) != tt.wantErr {
+				t.Errorf("StatStorage.SendBatch() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }

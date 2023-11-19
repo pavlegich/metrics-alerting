@@ -37,7 +37,7 @@ func WithSign(h http.Handler) http.Handler {
 			want := hex.EncodeToString(hash)
 
 			if want != got {
-				logger.Log.Info("WithSign: hashes not equal")
+				logger.Log.Error("WithSign: hashes not equal")
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
