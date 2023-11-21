@@ -12,7 +12,7 @@ func main() {
 	ctx := context.Background()
 
 	// Инициализация логера
-	if err := logger.Initialize(ctx, "Info"); err != nil {
+	if err := logger.Init(ctx, "Info"); err != nil {
 		logger.Log.Error("main: logger initialization error", zap.Error(err))
 	}
 	defer logger.Log.Sync()

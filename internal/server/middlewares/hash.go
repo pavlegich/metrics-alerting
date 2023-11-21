@@ -6,16 +6,20 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/pavlegich/metrics-alerting/internal/entities"
+	"github.com/pavlegich/metrics-alerting/internal/infra/hash"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
-	"github.com/pavlegich/metrics-alerting/internal/infra/sign"
-	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
+// WithSign обрабатывает запрос с учётом верно полученного хеша.
+// Обработчик формирует хеш из полученного тела запроса,
+// сравнивает с полученным в заголовке запроса хешем.
+// В случае неуспешной проверки прерывает обработку запроса.
 func WithSign(h http.Handler) http.Handler {
 	signFn := func(w http.ResponseWriter, r *http.Request) {
 		got := r.Header.Get("HashSHA256")
 
-		if got != "" && models.Key != "" {
+		if got != "" && entities.Key != "" {
 			var buf bytes.Buffer
 			_, err := buf.ReadFrom(r.Body)
 			defer r.Body.Close()
@@ -24,7 +28,7 @@ func WithSign(h http.Handler) http.Handler {
 				return
 			}
 			r.Body = io.NopCloser(&buf)
-			hash, err := sign.Sign(buf.Bytes(), []byte(models.Key))
+			hash, err := hash.Sign(buf.Bytes(), []byte(entities.Key))
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -33,13 +37,13 @@ func WithSign(h http.Handler) http.Handler {
 			want := hex.EncodeToString(hash)
 
 			if want != got {
-				logger.Log.Info("WithSign: hashes not equal")
+				logger.Log.Error("WithSign: hashes not equal")
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 		}
 
-		sw := sign.SigningResponseWriter{
+		sw := hash.SigningResponseWriter{
 			ResponseWriter: w,
 		}
 

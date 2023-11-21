@@ -3,18 +3,19 @@ package handlers
 import (
 	"context"
 	"database/sql"
-	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	"github.com/pavlegich/metrics-alerting/internal/server/middlewares"
 )
 
+// Webhook содержит локальное хранилище метрик и базу данных для сервера.
 type Webhook struct {
 	MemStorage interfaces.MetricStorage
 	Database   *sql.DB
 }
 
+// NewWebhook создаёт новое хранилище сервера.
 func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, db *sql.DB) *Webhook {
 	return &Webhook{
 		MemStorage: memStorage,
@@ -22,11 +23,12 @@ func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, db *sq
 	}
 }
 
+// Route инициализирует обработчики запросов сервера.
 func (h *Webhook) Route(ctx context.Context) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middlewares.WithLogging)
 	r.Use(middlewares.WithSign)
-	r.Use(middlewares.GZIP)
+	r.Use(middlewares.WithCompress)
 
 	r.Get("/", h.HandleMain)
 
@@ -40,19 +42,5 @@ func (h *Webhook) Route(ctx context.Context) *chi.Mux {
 
 	r.Post("/updates/", h.HandlePostUpdates)
 
-	r.HandleFunc("/value/{metricType}/", h.HandleBadRequest)
-	r.HandleFunc("/update/{metricType}/", h.HandleNotFound)
-	r.HandleFunc("/update/{metricType}/{metricName}/", h.HandleNotFound)
-
 	return r
-}
-
-func (h *Webhook) HandleBadRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusBadRequest)
-}
-
-func (h *Webhook) HandleNotFound(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusNotFound)
 }

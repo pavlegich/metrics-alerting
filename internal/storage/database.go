@@ -3,51 +3,23 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"embed"
 	"fmt"
 	"net/http"
 
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
-	"github.com/pressly/goose/v3"
 )
 
+// DBMetric содержит название и значение метрики
+// для хранения в базе данных.
 type DBMetric struct {
 	ID    string
 	Value string
 }
 
-//go:embed migrations/*.sql
-var embedMigrations embed.FS
-
-func InitDB(ctx context.Context, path string) (*sql.DB, error) {
-	// Открытие и проверка базы данных
-	db, err := sql.Open("pgx", path)
-	if err != nil {
-		return nil, fmt.Errorf("InitDB: couldn't open database %w", err)
-	}
-
-	if err := db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("InitDB: connection with database is died %w", err)
-	}
-
-	// Миграции
-	goose.SetBaseFS(embedMigrations)
-	if err := goose.SetDialect("postgres"); err != nil {
-		return nil, fmt.Errorf("InitDB: goose set dialect failed %w", err)
-	}
-	if err := goose.Up(db, "migrations"); err != nil {
-		return nil, fmt.Errorf("InitDB: goose up failed %w", err)
-	}
-
-	return db, nil
-}
-
+// SaveToDB сохраняет все метрики из хранилища сервера в базу данных.
 func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) error {
 	// Получение всех метрик из хранилища
-	metrics, status := ms.GetAll(ctx)
-	if status != http.StatusOK {
-		return fmt.Errorf("SaveToDB: metrics get error %v", status)
-	}
+	metrics := ms.GetAll(ctx)
 	DBMetrics := make(map[string]string)
 	for m, v := range metrics {
 		DBMetrics[m] = v
@@ -85,20 +57,16 @@ func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) erro
 	return nil
 }
 
+// LoadFromDB получает все метрики из хранилища
+// и сохраняет их в хранилище сервера.
 func LoadFromDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) error {
 	// Проверка базы данных
 	if err := db.PingContext(ctx); err != nil {
 		return fmt.Errorf("LoadFromDB: connection to database is died %w", err)
 	}
 
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("LoadFromDB: begin transaction failed %w", err)
-	}
-	defer tx.Rollback()
-
 	// Получение метрик из хранилища
-	rows, err := tx.QueryContext(ctx, "SELECT id, value FROM storage")
+	rows, err := db.QueryContext(ctx, "SELECT id, value FROM storage")
 	if err != nil {
 		return fmt.Errorf("LoadFromDB: read rows from table failed %w", err)
 	}
@@ -117,10 +85,6 @@ func LoadFromDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) er
 	err = rows.Err()
 	if err != nil {
 		return fmt.Errorf("LoadFromDB: rows.Err %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("LoadFromDB: commit transaction failed %w", err)
 	}
 
 	// Сохранение данных в локальном хранилище

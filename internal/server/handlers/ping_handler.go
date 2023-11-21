@@ -7,6 +7,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// HandlePing обрабатывает запрос для проверки наличия
+// соединения с базой данных.
 func (h *Webhook) HandlePing(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

@@ -7,7 +7,8 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/infra/compress"
 )
 
-func GZIP(h http.Handler) http.Handler {
+// WithCompress обрабатывает запрос с учётом сжатия.
+func WithCompress(h http.Handler) http.Handler {
 	gzipFn := func(w http.ResponseWriter, r *http.Request) {
 		// по умолчанию устанавливаем оригинальный http.ResponseWriter как тот,
 		// который будем передавать следующей функции

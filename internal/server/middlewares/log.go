@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// WithLogging логирует события из обработчиков.
 func WithLogging(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

@@ -7,10 +7,12 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
-	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
+// HandleGetMetric обрабатывает запрос на получение метрики,
+// отправляет в ответ полученное значение метрики из хранилища.
 func (h *Webhook) HandleGetMetric(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -26,13 +28,16 @@ func (h *Webhook) HandleGetMetric(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(value))
 }
 
+// HandlePostValue обрабатывает запрос получения значения метрики.
+// Обработчик принимает в JSON формате название и тип метрики,
+// в случае успешного получения значения метрики из хранилища,
+// формирует и отправляет ответ с метрикой в JSON формате.
 func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var req models.Metrics
+	var req entities.Metrics
 
 	// десериализуем запрос в структуру модели
-	logger.Log.Info("decoding request")
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
@@ -46,9 +51,9 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// проверяем, то пришел запрос понятного типа
+	// проверяем, что пришел запрос понятного типа
 	if req.MType != "gauge" && req.MType != "counter" {
-		logger.Log.Info("unsupported request type")
+		logger.Log.Error("unsupported request type")
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
@@ -56,24 +61,22 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 
 	// при правильном имени метрики, помещаем метрику в хранилище
 	if req.ID == "" {
-		logger.Log.Info("got metric with bad name")
+		logger.Log.Error("got metric with bad name")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	metricName := req.ID
 
-	// fmt.Println(metricType, metricName)
-
 	// заполняем модель ответа
 	metricValue, status := h.MemStorage.Get(ctx, metricType, metricName)
 
 	if status != http.StatusOK {
-		logger.Log.Info("metric get error")
+		logger.Log.Error("metric get error")
 		w.WriteHeader(status)
 		return
 	}
 
-	var resp models.Metrics
+	var resp entities.Metrics
 	switch metricType {
 	case "gauge":
 		v, err := strconv.ParseFloat(metricValue, 64)
@@ -81,7 +84,7 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		resp = models.Metrics{
+		resp = entities.Metrics{
 			ID:    metricName,
 			MType: metricType,
 			Value: &v,
@@ -92,7 +95,7 @@ func (h *Webhook) HandlePostValue(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		resp = models.Metrics{
+		resp = entities.Metrics{
 			ID:    metricName,
 			MType: metricType,
 			Delta: &v,

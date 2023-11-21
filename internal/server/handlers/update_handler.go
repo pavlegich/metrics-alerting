@@ -8,14 +8,15 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
-	"github.com/pavlegich/metrics-alerting/internal/models"
 )
 
+// HandlePostUpdates обрабатывает и сохраняет полученные метрики.
 func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	req := make([]models.Metrics, 0)
+	req := make([]entities.Metrics, 0)
 
 	// десериализуем запрос в структуру модели
 	var buf bytes.Buffer
@@ -70,6 +71,7 @@ func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandlePostMetric обрабатывает и сохраняет полученную метрику.
 func (h *Webhook) HandlePostMetric(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -82,28 +84,31 @@ func (h *Webhook) HandlePostMetric(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(status)
 }
 
+// HandlePostUpdate обрабатывает и сохраняет полученную в JSON формате метрику.
+// В случае успешного сохранения обработчик получает новое значение метрики
+// из хранилища и отправляет в ответ метрику в JSON формате.
 func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var req models.Metrics
+	var req entities.Metrics
 
 	// десериализуем запрос в структуру модели
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
-		logger.Log.Info("HandlePostUpdate: read body error")
+		logger.Log.Error("HandlePostUpdate: read body error")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	if err := json.Unmarshal(buf.Bytes(), &req); err != nil {
-		logger.Log.Info("HandlePostUpdate: decoding error")
+		logger.Log.Error("HandlePostUpdate: decoding error")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	// проверяем, то пришел запрос понятного типа
 	if req.MType != "gauge" && req.MType != "counter" {
-		logger.Log.Info("unsupported request type")
+		logger.Log.Error("unsupported request type")
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
@@ -111,7 +116,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// при правильном имени метрики, помещаем метрику в хранилище
 	if req.ID == "" {
-		logger.Log.Info("HandlePostUpdate: got metric with bad name")
+		logger.Log.Error("HandlePostUpdate: got metric with bad name")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -127,7 +132,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 
 	status := h.MemStorage.Put(ctx, metricType, metricName, metricValue)
 	if status != http.StatusOK {
-		logger.Log.Info("HandlePostUpdate: metric put error")
+		logger.Log.Error("HandlePostUpdate: metric put error")
 		w.WriteHeader(status)
 		return
 	}
@@ -135,12 +140,12 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 	// заполняем модель ответа
 	newValue, status := h.MemStorage.Get(ctx, metricType, metricName)
 	if status != http.StatusOK {
-		logger.Log.Info("HandlePostUpdate: metric get error")
+		logger.Log.Error("HandlePostUpdate: metric get error")
 		w.WriteHeader(status)
 		return
 	}
 
-	var resp models.Metrics
+	var resp entities.Metrics
 
 	switch metricType {
 	case "gauge":
@@ -149,7 +154,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		resp = models.Metrics{
+		resp = entities.Metrics{
 			ID:    metricName,
 			MType: metricType,
 			Value: &v,
@@ -160,13 +165,13 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		resp = models.Metrics{
+		resp = entities.Metrics{
 			ID:    metricName,
 			MType: metricType,
 			Delta: &v,
 		}
 	default:
-		logger.Log.Info("HandlePostUpdate: got wrong metric type")
+		logger.Log.Error("HandlePostUpdate: got wrong metric type")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

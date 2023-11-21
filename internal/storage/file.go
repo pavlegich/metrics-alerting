@@ -10,29 +10,24 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 )
 
+// FileMetrics содержит метрики для хранения в файле.
 type FileMetrics struct {
 	Metrics map[string]string `json:"metrics"`
 }
 
-func (fm *FileMetrics) SetFileMetrics(ctx context.Context, mName string, mValue string) error {
-	fm.Metrics[mName] = mValue
-	return nil
-}
-
+// NewFileMetrics создаёт новое хранилище метрик для файла.
 func NewFileMetrics(ctx context.Context) *FileMetrics {
 	return &FileMetrics{Metrics: make(map[string]string)}
 }
 
+// SaveToFile получает все текущие метрики из хранилища сервера,
+// преобразует их в JSON формат и сохраняет в файл.
 func SaveToFile(ctx context.Context, path string, ms interfaces.MetricStorage) error {
 	// сериализуем структуру в JSON формат
-	metrics, status := ms.GetAll(ctx)
-	if status != http.StatusOK {
-		return fmt.Errorf("SaveToFile: metrics get error %v", status)
-	}
-
+	metrics := ms.GetAll(ctx)
 	storage := NewFileMetrics(ctx)
 	for m, v := range metrics {
-		storage.SetFileMetrics(ctx, m, v)
+		storage.Metrics[m] = v
 	}
 
 	data, err := json.Marshal(storage)
@@ -46,6 +41,8 @@ func SaveToFile(ctx context.Context, path string, ms interfaces.MetricStorage) e
 	return nil
 }
 
+// LoadFromFile получает и конвертирует метрики из JSON формата,
+// сохраняет в хранилище сервера.
 func LoadFromFile(ctx context.Context, path string, ms interfaces.MetricStorage) error {
 	if _, err := os.Stat(path); err != nil {
 		if _, err := os.Create(path); err != nil {
@@ -67,8 +64,7 @@ func LoadFromFile(ctx context.Context, path string, ms interfaces.MetricStorage)
 	}
 
 	for m, v := range storage.Metrics {
-		// Сейчас все пусть будут gauge, чтобы ошибок с конвертацией не было, он не записывает тип в storage
-		// Впоследствии сделаю, чтобы в storage хранились отдельно gauge и counter, не все string
+		// Все метрики с типом gauge, чтобы не было проблем с конвертацией
 		if status := ms.Put(ctx, "gauge", m, v); status != http.StatusOK {
 			return fmt.Errorf("LoadFromFile: put metric status %v", status)
 		}
