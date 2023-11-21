@@ -6,13 +6,13 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/database"
@@ -98,8 +98,16 @@ func Run(done chan bool) error {
 	r.Use(middlewares.Recovery)
 	r.Mount("/", webhook.Route(ctx))
 
-	// pprof-обработчик
-	r.Mount("/debug", middleware.Profiler())
+	// Профилирование
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	profile := http.Server{
+		Addr:    "localhost:8081",
+		Handler: mux,
+	}
+	go func() {
+		profile.ListenAndServe()
+	}()
 
 	// Сервер
 	srv := http.Server{
@@ -116,6 +124,10 @@ func Run(done chan bool) error {
 		sig := <-sigs
 		if err := srv.Shutdown(ctx); err != nil {
 			logger.Log.Error("server shutdown failed",
+				zap.Error(err))
+		}
+		if err := profile.Shutdown(ctx); err != nil {
+			logger.Log.Error("profile shutdown failed",
 				zap.Error(err))
 		}
 		logger.Log.Info("shutting down gracefully",

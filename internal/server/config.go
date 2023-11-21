@@ -27,7 +27,7 @@ func ParseFlags(ctx context.Context) (*Config, error) {
 	flag.IntVar(&cfg.StoreInterval, "i", 10, "Frequency of storing on disk")
 	flag.StringVar(&cfg.StoragePath, "f", "/tmp/metrics-db.json", "Full path of values storage")
 	flag.BoolVar(&cfg.Restore, "r", true, "Restore values from the disk")
-	flag.StringVar(&cfg.Database, "d", "postgresql://localhost:5432/metrics", "URI (DSN) to database")
+	flag.StringVar(&cfg.Database, "d", "", "URI (DSN) to database")
 	flag.StringVar(&cfg.Key, "k", "", "Key for sign")
 
 	flag.Parse()
