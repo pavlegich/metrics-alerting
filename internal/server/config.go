@@ -11,11 +11,11 @@ import (
 // Config содержит значения флагов и переменных окружения сервера.
 type Config struct {
 	Address       string `env:"ADDRESS"`
-	StoreInterval int    `env:"STORE_INTERVAL"`
 	StoragePath   string `env:"FILE_STORAGE_PATH"`
-	Restore       bool   `env:"RESTORE"`
 	Database      string `env:"DATABASE_DSN"`
 	Key           string `env:"KEY"`
+	Restore       bool   `env:"RESTORE"`
+	StoreInterval int    `env:"STORE_INTERVAL"`
 }
 
 // ParseFlags обрабатывает введённые значения флагов и переменных окружения
