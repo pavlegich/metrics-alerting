@@ -1,11 +1,16 @@
 package main
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/fatih/errwrap/errwrap"
+	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"github.com/pavlegich/metrics-alerting/internal/utils/linter"
 	"github.com/timakin/bodyclose/passes/bodyclose"
+	"go.uber.org/zap"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/asmdecl"
@@ -53,7 +58,32 @@ import (
 	"honnef.co/go/tools/stylecheck"
 )
 
+// Config описывает структуру файла конфигурации.
+type Config struct {
+	StaticChecks []string
+}
+
 func main() {
+	appFile, err := os.Executable()
+	if err != nil {
+		logger.Log.Error("main: execute os failed",
+			zap.Error(err))
+	}
+	data, err := os.ReadFile(filepath.Join(filepath.Dir(appFile), `config.json`))
+	if err != nil {
+		logger.Log.Error("main: read file failed",
+			zap.Error(err))
+	}
+	var cfg Config
+	if err = json.Unmarshal(data, &cfg); err != nil {
+		logger.Log.Error("main: unmarshal failed",
+			zap.Error(err))
+	}
+	analyzers := make(map[string]bool)
+	for _, v := range cfg.StaticChecks {
+		analyzers[v] = true
+	}
+
 	var checks []*analysis.Analyzer
 
 	checks = append(checks,
@@ -105,11 +135,6 @@ func main() {
 	)
 
 	// Добавление анализаторов staticheck
-	analyzers := map[string]bool{
-		"S1020":  true,
-		"ST1003": true,
-		"QF1003": true,
-	}
 	for _, v := range staticcheck.Analyzers {
 		if strings.Contains(v.Analyzer.Name, "SA") {
 			checks = append(checks, v.Analyzer)
@@ -118,19 +143,16 @@ func main() {
 	for _, v := range simple.Analyzers {
 		if analyzers[v.Analyzer.Name] {
 			checks = append(checks, v.Analyzer)
-			break
 		}
 	}
 	for _, v := range stylecheck.Analyzers {
 		if analyzers[v.Analyzer.Name] {
 			checks = append(checks, v.Analyzer)
-			break
 		}
 	}
 	for _, v := range quickfix.Analyzers {
 		if analyzers[v.Analyzer.Name] {
 			checks = append(checks, v.Analyzer)
-			break
 		}
 	}
 
