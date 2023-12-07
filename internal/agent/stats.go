@@ -16,7 +16,7 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/infra/hash"
 )
 
-// StatsStorage хранит метрики агента.
+// StatStorage хранит метрики агента.
 type StatStorage struct {
 	stats map[string]entities.Metrics
 	mu    sync.RWMutex

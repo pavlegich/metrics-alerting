@@ -18,7 +18,7 @@ var ps string = "postgresql://localhost:5432/metrics"
 
 func testRequest(t *testing.T, ts *httptest.Server, method,
 	path string) (*http.Response, string) {
-	req, err := http.NewRequest(method, ts.URL+path, nil)
+	req, err := http.NewRequestWithContext(context.Background(), method, ts.URL+path, nil)
 	require.NoError(t, err)
 
 	resp, err := ts.Client().Do(req)
@@ -43,9 +43,9 @@ func TestWebhook_HandleMain(t *testing.T) {
 	defer ts.Close()
 
 	type want struct {
-		code        int
 		contentType string
 		body        string
+		code        int
 	}
 	tests := []struct {
 		name          string
@@ -95,8 +95,8 @@ func TestCounterPost(t *testing.T) {
 	defer ts.Close()
 
 	type want struct {
-		code        int
 		contentType string
+		code        int
 	}
 	tests := []struct {
 		name   string
@@ -155,8 +155,8 @@ func TestGaugePost(t *testing.T) {
 	defer ts.Close()
 
 	type want struct {
-		code        int
 		contentType string
+		code        int
 	}
 	tests := []struct {
 		name   string
@@ -215,9 +215,9 @@ func TestGaugeGet(t *testing.T) {
 	defer ts.Close()
 
 	type want struct {
-		code        int
 		contentType string
 		body        string
+		code        int
 	}
 	tests := []struct {
 		name          string

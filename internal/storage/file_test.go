@@ -32,8 +32,8 @@ func TestSaveToFile(t *testing.T) {
 	filePath := "/tmp/metrics-db.json"
 
 	type args struct {
-		path string
 		ms   interfaces.MetricStorage
+		path string
 	}
 	tests := []struct {
 		name    string
@@ -68,8 +68,8 @@ func TestLoadFromFile(t *testing.T) {
 	filePath := "/tmp/metrics-db.json"
 
 	type args struct {
-		path string
 		ms   interfaces.MetricStorage
+		path string
 	}
 	tests := []struct {
 		name    string

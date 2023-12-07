@@ -13,9 +13,9 @@ import (
 type (
 	// ResponseData хранит сведения об ответе.
 	ResponseData struct {
+		Body   *bytes.Buffer
 		Status int
 		Size   int
-		Body   *bytes.Buffer
 	}
 
 	// LoggingResponseWriter представляет собой реализацию http.ResponseWriter.

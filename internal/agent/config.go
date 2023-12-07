@@ -11,9 +11,9 @@ import (
 // Config содержит значения флагов и переменных окружения агента.
 type Config struct {
 	Address        string `env:"ADDRESS"`
+	Key            string `env:"KEY"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
 	ReportInterval int    `env:"REPORT_INTERVAL"`
-	Key            string `env:"KEY"`
 	RateLimit      int    `env:"RATE_LIMIT"`
 }
 
