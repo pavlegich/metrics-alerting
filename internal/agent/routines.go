@@ -12,14 +12,15 @@ import (
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	"go.uber.org/zap"
 )
 
-// PollCPUStats считывает информацию о занимаемой памяти с указанным интервалом времени
+// PollCPUstats считывает информацию о занимаемой памяти с указанным интервалом времени
 // и обновляет данные в хранилище.
-func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
+func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig, c chan int) {
 	interval := time.Duration(cfg.PollInterval) * time.Second
 
 	for {
@@ -42,7 +43,7 @@ func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, 
 
 // PollMemStats считывает метрики с указанным интервалом времени
 // и обновляет данные в хранилище.
-func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
+func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig, c chan int) {
 	// Runtime метрики
 	var memStats runtime.MemStats
 
@@ -69,7 +70,7 @@ func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, 
 
 // SendStats создаёт worker-ов и отправляет данные из хранилища в работу worker-ам
 // через канал с указанным интервалом.
-func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
+func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig, c chan int) {
 	interval := time.Duration(cfg.ReportInterval) * time.Second
 	jobs := make(chan interfaces.StatsStorage)
 	for w := 1; w <= cfg.RateLimit; w++ {
@@ -83,13 +84,13 @@ func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c c
 
 // sendWorker принимает метрики из канала и отправляет их по указанному адресу.
 // Если соединение с сервером получить не удаётся, прерывает отправку метрик.
-func sendWorker(ctx context.Context, cfg *Config, jobs <-chan interfaces.StatsStorage) {
+func sendWorker(ctx context.Context, cfg *config.AgentConfig, jobs <-chan interfaces.StatsStorage) {
 	for j := range jobs {
 		var err error = nil
 		intervals := []time.Duration{0, time.Second, 3 * time.Second, 5 * time.Second}
 		for _, interval := range intervals {
 			time.Sleep(interval)
-			err = j.SendBatch(ctx, cfg.Address, cfg.Key)
+			err = j.SendBatch(ctx, cfg)
 			if !errors.Is(err, syscall.ECONNREFUSED) {
 				break
 			}

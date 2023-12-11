@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/pavlegich/metrics-alerting/internal/agent"
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"go.uber.org/zap"
 )
@@ -29,7 +30,7 @@ func main() {
 	defer logger.Log.Sync()
 
 	// Парсинг флагов
-	cfg, err := agent.ParseFlags(ctx)
+	cfg, err := config.AgentParseFlags(ctx)
 	if err != nil {
 		logger.Log.Error("main: parse flags error", zap.Error(err))
 	}

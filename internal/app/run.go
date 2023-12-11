@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/entities"
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/infra/database"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"github.com/pavlegich/metrics-alerting/internal/server"
@@ -35,7 +36,7 @@ func Run(done chan bool) error {
 	defer logger.Log.Sync()
 
 	// Флаги
-	cfg, err := server.ParseFlags(ctx)
+	cfg, err := config.ServerParseFlags(ctx)
 	if err != nil {
 		return fmt.Errorf("Run: parse flags error %w", err)
 	}
