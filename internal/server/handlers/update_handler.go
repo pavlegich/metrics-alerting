@@ -22,6 +22,7 @@ func (h *Webhook) HandlePostUpdates(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 
 	_, err := buf.ReadFrom(r.Body)
+	defer r.Body.Close()
 	if err != nil {
 		logger.Log.Error("HandlePostUpdates: read body error")
 		w.WriteHeader(http.StatusBadRequest)
@@ -95,6 +96,7 @@ func (h *Webhook) HandlePostUpdate(w http.ResponseWriter, r *http.Request) {
 	// десериализуем запрос в структуру модели
 	var buf bytes.Buffer
 	_, err := buf.ReadFrom(r.Body)
+	defer r.Body.Close()
 	if err != nil {
 		logger.Log.Error("HandlePostUpdate: read body error")
 		w.WriteHeader(http.StatusBadRequest)

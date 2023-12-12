@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	"github.com/pavlegich/metrics-alerting/internal/server/middlewares"
 )
@@ -13,13 +14,15 @@ import (
 type Webhook struct {
 	MemStorage interfaces.MetricStorage
 	Database   *sql.DB
+	Config     *config.ServerConfig
 }
 
 // NewWebhook создаёт новое хранилище сервера.
-func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, db *sql.DB) *Webhook {
+func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, db *sql.DB, cfg *config.ServerConfig) *Webhook {
 	return &Webhook{
 		MemStorage: memStorage,
 		Database:   db,
+		Config:     cfg,
 	}
 }
 
@@ -28,6 +31,7 @@ func (h *Webhook) Route(ctx context.Context) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middlewares.WithLogging)
 	r.Use(middlewares.WithSign)
+	r.Use(middlewares.WithDecryption(h.Config.CryptoKey))
 	r.Use(middlewares.WithCompress)
 
 	r.Get("/", h.HandleMain)

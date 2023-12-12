@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 )
 
@@ -26,8 +27,11 @@ func ExampleWebhook_HandleMain() {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/`
@@ -62,8 +66,11 @@ func BenchmarkWebhook_HandleMain(b *testing.B) {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/`

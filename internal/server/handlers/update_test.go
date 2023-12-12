@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/pavlegich/metrics-alerting/internal/entities"
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 )
 
@@ -30,8 +31,11 @@ func ExampleWebhook_HandlePostUpdates() {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/updates/`
@@ -81,8 +85,11 @@ func ExampleWebhook_HandlePostMetric() {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/update/gauge/someMetric/10.1`
@@ -115,8 +122,11 @@ func ExampleWebhook_HandlePostUpdate() {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 
 	// Подготовка данных для запроса
 	url := `http://localhost:8080/update/`
@@ -170,8 +180,11 @@ func BenchmarkWebhook_HandlePostUpdates(b *testing.B) {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/updates/`
@@ -215,8 +228,11 @@ func BenchmarkWebhook_HandlePostMetric(b *testing.B) {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/update/gauge/someMetric/10.1`
@@ -243,8 +259,11 @@ func BenchmarkWebhook_HandlePostUpdate(b *testing.B) {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 
 	// Подготовка данных для запроса
 	url := `http://localhost:8080/update/`

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/pavlegich/metrics-alerting/internal/entities"
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 )
 
@@ -30,8 +31,11 @@ func ExampleWebhook_HandleGetMetric() {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",
@@ -76,8 +80,11 @@ func ExampleWebhook_HandlePostValue() {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",
@@ -134,8 +141,11 @@ func BenchmarkWebhook_HandleGetMetric(b *testing.B) {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",
@@ -167,8 +177,11 @@ func BenchmarkWebhook_HandlePostValue(b *testing.B) {
 	}
 	defer db.Close()
 
+	// Конфиг
+	cfg := &config.ServerConfig{}
+
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, db, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",

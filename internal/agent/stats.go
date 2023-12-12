@@ -14,6 +14,7 @@ import (
 
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
+	"github.com/pavlegich/metrics-alerting/internal/infra/crypto"
 	"github.com/pavlegich/metrics-alerting/internal/infra/hash"
 )
 
@@ -116,6 +117,15 @@ func Send(ctx context.Context, target string, cfg *config.AgentConfig, stats ...
 		return err
 	}
 
+	// Шифрование
+	if cfg.CryptoKey != "" {
+		encryptedReq, err := crypto.Encrypt(buf.Bytes(), cfg.CryptoKey)
+		if err != nil {
+			return fmt.Errorf("Send: encrypt failed %w", err)
+		}
+		buf = bytes.NewBuffer(encryptedReq)
+	}
+
 	r, err := http.NewRequestWithContext(ctx, http.MethodPost, target, buf)
 	if err != nil {
 		return fmt.Errorf("Send: new post request %w", err)
@@ -132,6 +142,10 @@ func Send(ctx context.Context, target string, cfg *config.AgentConfig, stats ...
 	r.Header.Set("Content-Encoding", "gzip")
 	r.Header.Set("Accept-Encoding", "gzip")
 	r.Header.Set("Content-Type", "application/json")
+
+	if cfg.CryptoKey != "" {
+		r.Header.Set("Content-Encryption", "rsa")
+	}
 
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {

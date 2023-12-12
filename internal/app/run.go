@@ -65,7 +65,7 @@ func Run(done chan bool) error {
 	}
 
 	// Контроллер
-	webhook := handlers.NewWebhook(ctx, memStorage, db)
+	webhook := handlers.NewWebhook(ctx, memStorage, db, cfg)
 
 	// Ключ для хеширования
 	if cfg.Key != "" {
