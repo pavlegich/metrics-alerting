@@ -20,9 +20,21 @@ func NewFileMetrics(ctx context.Context) *FileMetrics {
 	return &FileMetrics{Metrics: make(map[string]string)}
 }
 
-// SaveToFile получает все текущие метрики из хранилища сервера,
+// File содержит информацию о пути к файлу.
+type File struct {
+	path string
+}
+
+// NewFile создаёт новый объект File для хранения метрик сервера.
+func NewFile(path string) *File {
+	return &File{
+		path: path,
+	}
+}
+
+// Save получает все текущие метрики из хранилища сервера,
 // преобразует их в JSON формат и сохраняет в файл.
-func SaveToFile(ctx context.Context, path string, ms interfaces.MetricStorage) error {
+func (f *File) Save(ctx context.Context, ms interfaces.MetricStorage) error {
 	// сериализуем структуру в JSON формат
 	metrics := ms.GetAll(ctx)
 	storage := NewFileMetrics(ctx)
@@ -35,24 +47,24 @@ func SaveToFile(ctx context.Context, path string, ms interfaces.MetricStorage) e
 		return fmt.Errorf("SaveToFile: data marshal %w", err)
 	}
 	// сохраняем данные в файл
-	if err := os.WriteFile(path, data, 0666); err != nil {
+	if err := os.WriteFile(f.path, data, 0666); err != nil {
 		return fmt.Errorf("SaveToFile: write file error %w", err)
 	}
 	return nil
 }
 
-// LoadFromFile получает и конвертирует метрики из JSON формата,
+// Load получает и конвертирует метрики из JSON формата,
 // сохраняет в хранилище сервера.
-func LoadFromFile(ctx context.Context, path string, ms interfaces.MetricStorage) error {
-	if _, err := os.Stat(path); err != nil {
-		if _, err := os.Create(path); err != nil {
+func (f *File) Load(ctx context.Context, ms interfaces.MetricStorage) error {
+	if _, err := os.Stat(f.path); err != nil {
+		if _, err := os.Create(f.path); err != nil {
 			return fmt.Errorf("LoadFromFile: file create %w", err)
 		}
-		if err := SaveToFile(ctx, path, ms); err != nil {
+		if err := f.Save(ctx, ms); err != nil {
 			return fmt.Errorf("LoadFromFile: data save %w", err)
 		}
 	}
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(f.path)
 	if err != nil {
 		return fmt.Errorf("LoadFromFile: read file error %w", err)
 	}
@@ -71,4 +83,10 @@ func LoadFromFile(ctx context.Context, path string, ms interfaces.MetricStorage)
 	}
 
 	return nil
+}
+
+// Ping проверяет наличие файла.
+func (f *File) Ping(ctx context.Context) error {
+	_, err := os.Stat(f.path)
+	return err
 }

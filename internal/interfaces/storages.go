@@ -24,4 +24,10 @@ type (
 		GetAll(ctx context.Context) map[string]string
 		Get(ctx context.Context, metricType string, metricName string) (string, int)
 	}
+
+	Storage interface {
+		Save(ctx context.Context, ms MetricStorage) error
+		Load(ctx context.Context, ms MetricStorage) error
+		Ping(ctx context.Context) error
+	}
 )

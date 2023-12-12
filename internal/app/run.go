@@ -63,9 +63,13 @@ func Run(done chan bool) error {
 	} else {
 		db = nil
 	}
+	database := storage.NewDatabase(db)
+
+	// Файл
+	file := storage.NewFile(cfg.StoragePath)
 
 	// Контроллер
-	webhook := handlers.NewWebhook(ctx, memStorage, db, cfg)
+	webhook := handlers.NewWebhook(ctx, memStorage, database, file, cfg)
 
 	// Ключ для хеширования
 	if cfg.Key != "" {
@@ -76,11 +80,11 @@ func Run(done chan bool) error {
 	if cfg.Restore {
 		switch {
 		case cfg.Database != "":
-			if err := storage.LoadFromDB(ctx, webhook.Database, webhook.MemStorage); err != nil {
+			if err := database.Load(ctx, webhook.MemStorage); err != nil {
 				logger.Log.Error("Run: restore storage from database failed", zap.Error(err))
 			}
 		case cfg.StoragePath != "":
-			if err := storage.LoadFromFile(ctx, cfg.StoragePath, webhook.MemStorage); err != nil {
+			if err := file.Load(ctx, webhook.MemStorage); err != nil {
 				logger.Log.Error("Run: restore storage from file failed", zap.Error(err))
 			}
 		}
@@ -91,7 +95,7 @@ func Run(done chan bool) error {
 	case cfg.Database != "":
 		go server.SaveToDBRoutine(ctx, webhook, storeInterval)
 	case cfg.StoragePath != "":
-		go server.SaveToFileRoutine(ctx, webhook, storeInterval, cfg.StoragePath)
+		go server.SaveToFileRoutine(ctx, webhook, storeInterval)
 	}
 
 	// Роутер

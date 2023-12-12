@@ -22,7 +22,7 @@ func ExampleWebhook_HandleMain() {
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, nil, cfg)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/`
@@ -53,7 +53,7 @@ func BenchmarkWebhook_HandleMain(b *testing.B) {
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, nil, cfg)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/`

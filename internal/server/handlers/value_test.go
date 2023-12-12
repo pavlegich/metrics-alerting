@@ -26,7 +26,7 @@ func ExampleWebhook_HandleGetMetric() {
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, nil, cfg)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",
@@ -67,7 +67,7 @@ func ExampleWebhook_HandlePostValue() {
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, nil, cfg)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",
@@ -120,7 +120,7 @@ func BenchmarkWebhook_HandleGetMetric(b *testing.B) {
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, nil, cfg)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",
@@ -148,7 +148,7 @@ func BenchmarkWebhook_HandlePostValue(b *testing.B) {
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, nil, cfg)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",

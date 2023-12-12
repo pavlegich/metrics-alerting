@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
@@ -13,15 +12,17 @@ import (
 // Webhook содержит локальное хранилище метрик и базу данных для сервера.
 type Webhook struct {
 	MemStorage interfaces.MetricStorage
-	Database   *sql.DB
+	Database   interfaces.Storage
+	File       interfaces.Storage
 	Config     *config.ServerConfig
 }
 
 // NewWebhook создаёт новое хранилище сервера.
-func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, db *sql.DB, cfg *config.ServerConfig) *Webhook {
+func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, database interfaces.Storage, file interfaces.Storage, cfg *config.ServerConfig) *Webhook {
 	return &Webhook{
 		MemStorage: memStorage,
-		Database:   db,
+		Database:   database,
+		File:       file,
 		Config:     cfg,
 	}
 }

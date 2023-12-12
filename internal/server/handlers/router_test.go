@@ -39,8 +39,9 @@ func TestWebhook_HandleMain(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
+	database := storage.NewDatabase(db)
 	cfg := &config.ServerConfig{}
-	h := NewWebhook(ctx, ms, db, cfg)
+	h := NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
@@ -92,8 +93,9 @@ func TestCounterPost(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
+	database := storage.NewDatabase(db)
 	cfg := &config.ServerConfig{}
-	h := NewWebhook(ctx, ms, db, cfg)
+	h := NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
@@ -154,7 +156,8 @@ func TestGaugePost(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 	cfg := &config.ServerConfig{}
-	h := NewWebhook(ctx, ms, db, cfg)
+	database := storage.NewDatabase(db)
+	h := NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
@@ -214,8 +217,9 @@ func TestGaugeGet(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
+	database := storage.NewDatabase(db)
 	cfg := &config.ServerConfig{}
-	h := NewWebhook(ctx, ms, db, cfg)
+	h := NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 

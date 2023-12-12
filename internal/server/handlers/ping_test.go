@@ -22,7 +22,7 @@ func ExampleWebhook_HandlePing() {
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, nil, cfg)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/ping`
@@ -51,7 +51,7 @@ func BenchmarkWebhook_HandlePing(b *testing.B) {
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, nil, cfg)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/ping`

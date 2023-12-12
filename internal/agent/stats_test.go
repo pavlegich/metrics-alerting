@@ -153,8 +153,9 @@ func TestStatStorage_SendBatch(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
+	database := storage.NewDatabase(db)
 	cfg := &config.ServerConfig{}
-	h := handlers.NewWebhook(ctx, ms, db, cfg)
+	h := handlers.NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 	addr, _ := strings.CutPrefix(ts.URL, "http://")
@@ -241,8 +242,9 @@ func TestStatStorage_SendJSON(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
+	database := storage.NewDatabase(db)
 	cfg := &config.ServerConfig{}
-	h := handlers.NewWebhook(ctx, ms, db, cfg)
+	h := handlers.NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 	addr, _ := strings.CutPrefix(ts.URL, "http://")
@@ -316,8 +318,9 @@ func TestStatStorage_SendGZIP(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
+	database := storage.NewDatabase(db)
 	cfg := &config.ServerConfig{}
-	h := handlers.NewWebhook(ctx, ms, db, cfg)
+	h := handlers.NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 	addr, _ := strings.CutPrefix(ts.URL, "http://")

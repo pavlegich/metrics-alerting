@@ -16,8 +16,20 @@ type DBMetric struct {
 	Value string
 }
 
-// SaveToDB сохраняет все метрики из хранилища сервера в базу данных.
-func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) error {
+// Database содержит информацию о базе данных.
+type Database struct {
+	db *sql.DB
+}
+
+// NewDatabase создаёт новый объект Database для хранения метрик сервера.
+func NewDatabase(db *sql.DB) *Database {
+	return &Database{
+		db: db,
+	}
+}
+
+// Save сохраняет все метрики из хранилища сервера в базу данных.
+func (d *Database) Save(ctx context.Context, ms interfaces.MetricStorage) error {
 	// Получение всех метрик из хранилища
 	metrics := ms.GetAll(ctx)
 	DBMetrics := make(map[string]string)
@@ -26,11 +38,11 @@ func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) erro
 	}
 
 	// Проверка базы данных
-	if err := db.PingContext(ctx); err != nil {
+	if err := d.db.PingContext(ctx); err != nil {
 		return fmt.Errorf("SaveToDB: connection to database is died %w", err)
 	}
 
-	tx, err := db.Begin()
+	tx, err := d.db.Begin()
 	if err != nil {
 		return fmt.Errorf("SaveToDB: begin transaction failed %w", err)
 	}
@@ -57,16 +69,16 @@ func SaveToDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) erro
 	return nil
 }
 
-// LoadFromDB получает все метрики из хранилища
+// Load получает все метрики из хранилища
 // и сохраняет их в хранилище сервера.
-func LoadFromDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) error {
+func (d *Database) Load(ctx context.Context, ms interfaces.MetricStorage) error {
 	// Проверка базы данных
-	if err := db.PingContext(ctx); err != nil {
+	if err := d.db.PingContext(ctx); err != nil {
 		return fmt.Errorf("LoadFromDB: connection to database is died %w", err)
 	}
 
 	// Получение метрик из хранилища
-	rows, err := db.QueryContext(ctx, "SELECT id, value FROM storage")
+	rows, err := d.db.QueryContext(ctx, "SELECT id, value FROM storage")
 	if err != nil {
 		return fmt.Errorf("LoadFromDB: read rows from table failed %w", err)
 	}
@@ -96,4 +108,9 @@ func LoadFromDB(ctx context.Context, db *sql.DB, ms interfaces.MetricStorage) er
 	}
 
 	return nil
+}
+
+// Ping проверяет наличие соединения с базой данных.
+func (d *Database) Ping(ctx context.Context) error {
+	return d.db.PingContext(ctx)
 }
