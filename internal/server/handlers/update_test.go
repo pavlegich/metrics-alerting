@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,19 +22,11 @@ func ExampleWebhook_HandlePostUpdates() {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
-
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db, cfg)
+	h := NewWebhook(ctx, ms, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/updates/`
@@ -77,19 +68,11 @@ func ExampleWebhook_HandlePostMetric() {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
-
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db, cfg)
+	h := NewWebhook(ctx, ms, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/update/gauge/someMetric/10.1`
@@ -114,19 +97,11 @@ func ExampleWebhook_HandlePostUpdate() {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
-
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db, cfg)
+	h := NewWebhook(ctx, ms, nil, cfg)
 
 	// Подготовка данных для запроса
 	url := `http://localhost:8080/update/`
@@ -172,19 +147,11 @@ func BenchmarkWebhook_HandlePostUpdates(b *testing.B) {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
-
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db, cfg)
+	h := NewWebhook(ctx, ms, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/updates/`
@@ -220,19 +187,11 @@ func BenchmarkWebhook_HandlePostMetric(b *testing.B) {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
-
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db, cfg)
+	h := NewWebhook(ctx, ms, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/update/gauge/someMetric/10.1`
@@ -251,19 +210,11 @@ func BenchmarkWebhook_HandlePostUpdate(b *testing.B) {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
-
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db, cfg)
+	h := NewWebhook(ctx, ms, nil, cfg)
 
 	// Подготовка данных для запроса
 	url := `http://localhost:8080/update/`

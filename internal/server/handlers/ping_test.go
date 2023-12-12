@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -19,19 +18,11 @@ func ExampleWebhook_HandlePing() {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
-
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db, cfg)
+	h := NewWebhook(ctx, ms, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/ping`
@@ -56,19 +47,11 @@ func BenchmarkWebhook_HandlePing(b *testing.B) {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
-
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db, cfg)
+	h := NewWebhook(ctx, ms, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/ping`
