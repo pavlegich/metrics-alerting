@@ -18,6 +18,7 @@ func WithDecryption(keyPath string) func(h http.Handler) http.Handler {
 
 			if !sendsRSA || keyPath == "" {
 				h.ServeHTTP(w, r)
+				return
 			}
 
 			var buf bytes.Buffer
