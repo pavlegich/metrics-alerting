@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/caarlos0/env/v6"
-	conf "github.com/pavlegich/metrics-alerting/internal/utils/config"
 )
 
 // AgentConfig содержит значения флагов и переменных окружения агента.
@@ -43,6 +42,8 @@ func AgentParseFlags(ctx context.Context) (*AgentConfig, error) {
 		cfg.parseConfig(ctx)
 	}
 
+	flag.Parse()
+
 	// Проверяем переменные окружения
 	if err := env.Parse(cfg); err != nil {
 		return cfg, fmt.Errorf("ParseFlags: environment values not parsed %w", err)
@@ -51,6 +52,7 @@ func AgentParseFlags(ctx context.Context) (*AgentConfig, error) {
 	return cfg, nil
 }
 
+// parseConfig обрабатывает файл конфигурации для агента
 func (cfg *AgentConfig) parseConfig(ctx context.Context) error {
 	f, err := os.Open(cfg.Config)
 	if err != nil {
@@ -63,30 +65,9 @@ func (cfg *AgentConfig) parseConfig(ctx context.Context) error {
 		return fmt.Errorf("parseConfig: read file failed %w", err)
 	}
 
-	fc := &AgentConfig{}
-
-	err = json.Unmarshal(data, &fc)
+	err = json.Unmarshal(data, &cfg)
 	if err != nil {
 		return fmt.Errorf("parseConfig: unmarshal flags failed %w", err)
-	}
-
-	if !conf.IsFlagPassed("a") && fc.Address != "" {
-		cfg.Address = fc.Address
-	}
-	if !conf.IsFlagPassed("p") && fc.PollInterval != 0 {
-		cfg.PollInterval = fc.PollInterval
-	}
-	if !conf.IsFlagPassed("r") && fc.ReportInterval != 0 {
-		cfg.ReportInterval = fc.ReportInterval
-	}
-	if !conf.IsFlagPassed("k") && fc.Key != "" {
-		cfg.Key = fc.Key
-	}
-	if !conf.IsFlagPassed("l") && fc.RateLimit != 0 {
-		cfg.RateLimit = fc.RateLimit
-	}
-	if !conf.IsFlagPassed("crypto-key") && fc.CryptoKey != "" {
-		cfg.CryptoKey = fc.CryptoKey
 	}
 
 	return nil
