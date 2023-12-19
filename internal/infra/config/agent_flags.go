@@ -28,11 +28,11 @@ func AgentParseFlags(ctx context.Context) (*AgentConfig, error) {
 
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "HTTP-server endpoint address host:port")
 	flag.IntVar(&cfg.PollInterval, "p", 2, "Frequency of metrics polling from the runtime package")
-	flag.IntVar(&cfg.ReportInterval, "r", 10, "Frequency of sending metrics to HTTP-server")
+	flag.IntVar(&cfg.ReportInterval, "r", 5, "Frequency of sending metrics to HTTP-server")
 	flag.StringVar(&cfg.Key, "k", "", "Key for sign")
 	flag.IntVar(&cfg.RateLimit, "l", 1, "Number of simultaneous requests to the server")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "Path to public key")
-	flag.StringVar(&cfg.Config, "config", "/Users/Pavel/Desktop/Go.Edu/metrics-alerting/internal/infra/config/agent_config.json", "Path to config")
+	flag.StringVar(&cfg.Config, "config", "", "Path to config")
 	flag.StringVar(&cfg.Config, "c", cfg.Config, "alias for -config")
 
 	flag.Parse()
@@ -52,7 +52,7 @@ func AgentParseFlags(ctx context.Context) (*AgentConfig, error) {
 	return cfg, nil
 }
 
-// parseConfig обрабатывает файл конфигурации для агента
+// parseConfig обрабатывает файл конфигурации для агента.
 func (cfg *AgentConfig) parseConfig(ctx context.Context) error {
 	f, err := os.Open(cfg.Config)
 	if err != nil {

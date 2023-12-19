@@ -22,10 +22,13 @@ func main() {
 	fmt.Println("Build date:", buildDate)
 	fmt.Println("Build commit:", buildCommit)
 
-	done := make(chan bool, 1)
-	if err := app.Run(done); err != http.ErrServerClosed {
+	idleConnsClosed := make(chan struct{})
+
+	if err := app.Run(idleConnsClosed); err != http.ErrServerClosed {
 		logger.Log.Error("main: run app failed",
 			zap.Error(err))
 	}
-	<-done
+
+	<-idleConnsClosed
+	logger.Log.Info("quit")
 }

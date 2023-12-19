@@ -9,6 +9,7 @@ import (
 	"net/http/pprof"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -26,8 +27,10 @@ import (
 )
 
 // Run инициализирует основные компоненты и запускает сервер.
-func Run(done chan bool) error {
-	ctx := context.Background()
+func Run(idleConnsClosed chan struct{}) error {
+	ctx, cancelRun := context.WithCancel(context.Background())
+	defer cancelRun()
+	wg := &sync.WaitGroup{}
 
 	// Логгер
 	if err := logger.Init(ctx, "Info"); err != nil {
@@ -91,11 +94,12 @@ func Run(done chan bool) error {
 	}
 
 	// Хранение данных в базе данных или файле
+	wg.Add(1)
 	switch {
 	case cfg.Database != "":
-		go server.SaveToDBRoutine(ctx, webhook, storeInterval)
+		go server.SaveToDBRoutine(ctx, wg, webhook, storeInterval)
 	case cfg.StoragePath != "":
-		go server.SaveToFileRoutine(ctx, webhook, storeInterval)
+		go server.SaveToFileRoutine(ctx, wg, webhook, storeInterval)
 	}
 
 	// Роутер
@@ -120,25 +124,31 @@ func Run(done chan bool) error {
 		Handler: r,
 	}
 
-	logger.Log.Info("running server", zap.String("addr", cfg.Address))
-
 	// Завершение программы
 	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
 		sig := <-sigs
-		if err := srv.Shutdown(ctx); err != nil {
+		ctxShutDown, cancelShutDown := context.WithTimeout(ctx, 5*time.Second)
+		defer cancelShutDown()
+
+		if err := srv.Shutdown(ctxShutDown); err != nil {
 			logger.Log.Error("server shutdown failed",
 				zap.Error(err))
 		}
-		if err := profile.Shutdown(ctx); err != nil {
+		if err := profile.Shutdown(ctxShutDown); err != nil {
 			logger.Log.Error("profile shutdown failed",
 				zap.Error(err))
 		}
-		logger.Log.Info("shutting down gracefully",
+
+		cancelRun()
+		logger.Log.Info("shutting down gracefully...",
 			zap.String("signal", sig.String()))
-		done <- true
+		// wg.Wait()
+		close(idleConnsClosed)
 	}()
+
+	logger.Log.Info("running server", zap.String("addr", cfg.Address))
 
 	return srv.ListenAndServe()
 }

@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"math/rand"
 	"runtime"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
@@ -20,7 +22,7 @@ import (
 
 // PollCPUstats считывает информацию о занимаемой памяти с указанным интервалом времени
 // и обновляет данные в хранилище.
-func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig, c chan int) {
+func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
 	interval := time.Duration(cfg.PollInterval) * time.Second
 
 	for {
@@ -37,13 +39,18 @@ func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *config.A
 		st.Put(ctx, "gauge", "FreeMemory", fmt.Sprintf("%v", v.Free))
 		st.Put(ctx, "gauge", "CPUutilization1", fmt.Sprintf("%v", c))
 
-		time.Sleep(interval)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(interval)
+		}
 	}
 }
 
 // PollMemStats считывает метрики с указанным интервалом времени
 // и обновляет данные в хранилище.
-func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig, c chan int) {
+func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
 	// Runtime метрики
 	var memStats runtime.MemStats
 
@@ -64,27 +71,49 @@ func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.A
 			logger.Log.Error("PollMemStats: stats update", zap.Error(err))
 		}
 
-		time.Sleep(interval)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(interval)
+		}
 	}
 }
 
 // SendStats создаёт worker-ов и отправляет данные из хранилища в работу worker-ам
 // через канал с указанным интервалом.
-func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig, c chan int) {
+func SendStats(ctx context.Context, wg *sync.WaitGroup, st interfaces.StatsStorage, cfg *config.AgentConfig) {
+	defer wg.Done()
 	interval := time.Duration(cfg.ReportInterval) * time.Second
 	jobs := make(chan interfaces.StatsStorage)
+	wg.Add(cfg.RateLimit)
+	g := new(errgroup.Group)
 	for w := 1; w <= cfg.RateLimit; w++ {
-		go sendWorker(ctx, cfg, jobs)
+		g.Go(func() error {
+			return sendWorker(wg, cfg, jobs)
+		})
 	}
 	for {
 		jobs <- st
-		time.Sleep(interval)
+		select {
+		case <-ctx.Done():
+			close(jobs)
+			if err := g.Wait(); err != nil {
+				logger.Log.Error("SendStats: errgroup error",
+					zap.Error(err))
+			}
+			return
+		default:
+			time.Sleep(interval)
+		}
 	}
 }
 
 // sendWorker принимает метрики из канала и отправляет их по указанному адресу.
 // Если соединение с сервером получить не удаётся, прерывает отправку метрик.
-func sendWorker(ctx context.Context, cfg *config.AgentConfig, jobs <-chan interfaces.StatsStorage) {
+func sendWorker(wg *sync.WaitGroup, cfg *config.AgentConfig, jobs <-chan interfaces.StatsStorage) error {
+	defer wg.Done()
+	ctx := context.Background()
 	for j := range jobs {
 		var err error = nil
 		intervals := []time.Duration{0, time.Second, 3 * time.Second, 5 * time.Second}
@@ -96,7 +125,8 @@ func sendWorker(ctx context.Context, cfg *config.AgentConfig, jobs <-chan interf
 			}
 		}
 		if err != nil {
-			logger.Log.Error("sendWorker: send stats failed", zap.Error(err))
+			return fmt.Errorf("sendWorker: send stats failed %w", err)
 		}
 	}
+	return nil
 }

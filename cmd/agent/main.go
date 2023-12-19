@@ -3,6 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/pavlegich/metrics-alerting/internal/agent"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
@@ -21,7 +25,9 @@ func main() {
 	fmt.Println("Build date:", buildDate)
 	fmt.Println("Build commit:", buildCommit)
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
+	wg := &sync.WaitGroup{}
 
 	// Инициализация логера
 	if err := logger.Init(ctx, "Info"); err != nil {
@@ -38,18 +44,17 @@ func main() {
 	// Хранилище метрик
 	statsStorage := agent.NewStatStorage(ctx)
 
-	c := make(chan int)
-
 	// Периодический опрос и отправка метрик
-	go agent.SendStats(ctx, statsStorage, cfg, c)
-	go agent.PollCPUstats(ctx, statsStorage, cfg, c)
-	go agent.PollMemStats(ctx, statsStorage, cfg, c)
+	wg.Add(1)
+	go agent.SendStats(ctx, wg, statsStorage, cfg)
+	go agent.PollCPUstats(ctx, statsStorage, cfg)
+	go agent.PollMemStats(ctx, statsStorage, cfg)
 
-	for {
-		_, ok := <-c
-		if !ok {
-			logger.Log.Info("routine channel is closed; exit")
-			break // exit
-		}
+	<-ctx.Done()
+	if ctx.Err() != nil {
+		logger.Log.Info("shutting down gracefully...",
+			zap.Error(ctx.Err()))
+		wg.Wait()
+		logger.Log.Info("quit")
 	}
 }
