@@ -94,12 +94,17 @@ func Run(idleConnsClosed chan struct{}) error {
 	}
 
 	// Хранение данных в базе данных или файле
-	wg.Add(1)
-	switch {
-	case cfg.Database != "":
-		go server.SaveToDBRoutine(ctx, wg, webhook, storeInterval)
-	case cfg.StoragePath != "":
-		go server.SaveToFileRoutine(ctx, wg, webhook, storeInterval)
+	if cfg.Database != "" || cfg.StoragePath != "" {
+		saveFunc := server.SaveToFileRoutine
+		if cfg.Database != "" {
+			saveFunc = server.SaveToDBRoutine
+		}
+
+		wg.Add(1)
+		go func() {
+			saveFunc(ctx, webhook, storeInterval)
+			wg.Done()
+		}()
 	}
 
 	// Роутер
@@ -144,7 +149,7 @@ func Run(idleConnsClosed chan struct{}) error {
 		cancelRun()
 		logger.Log.Info("shutting down gracefully...",
 			zap.String("signal", sig.String()))
-		// wg.Wait()
+		wg.Wait()
 		close(idleConnsClosed)
 	}()
 

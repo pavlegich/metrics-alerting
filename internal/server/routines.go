@@ -3,15 +3,13 @@ package server
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/server/handlers"
 )
 
 // SaveToFileRoutine сохраняет метрики в файл с указанным интервалом времени.
-func SaveToFileRoutine(ctx context.Context, wg *sync.WaitGroup, wh *handlers.Webhook, store time.Duration) error {
-	defer wg.Done()
+func SaveToFileRoutine(ctx context.Context, wh *handlers.Webhook, store time.Duration) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -29,8 +27,7 @@ func SaveToFileRoutine(ctx context.Context, wg *sync.WaitGroup, wh *handlers.Web
 }
 
 // SaveToDBRoutine сохраняет метрики в базу данных с указанным интервалом времени.
-func SaveToDBRoutine(ctx context.Context, wg *sync.WaitGroup, wh *handlers.Webhook, store time.Duration) error {
-	defer wg.Done()
+func SaveToDBRoutine(ctx context.Context, wh *handlers.Webhook, store time.Duration) error {
 	for {
 		select {
 		case <-ctx.Done():

@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/agent"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
@@ -46,15 +47,38 @@ func main() {
 
 	// Периодический опрос и отправка метрик
 	wg.Add(1)
-	go agent.SendStats(ctx, wg, statsStorage, cfg)
-	go agent.PollCPUstats(ctx, statsStorage, cfg)
-	go agent.PollMemStats(ctx, statsStorage, cfg)
+	go func() {
+		agent.SendStats(ctx, statsStorage, cfg)
+		wg.Done()
+	}()
+
+	go func() {
+		agent.PollCPUstats(ctx, statsStorage, cfg)
+	}()
+
+	go func() {
+		agent.PollMemStats(ctx, statsStorage, cfg)
+	}()
 
 	<-ctx.Done()
 	if ctx.Err() != nil {
 		logger.Log.Info("shutting down gracefully...",
 			zap.Error(ctx.Err()))
-		wg.Wait()
+
+		// Ожидание завершения процессов
+		connsClosed := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(connsClosed)
+		}()
+
+		// Обработка завершения программы
+		select {
+		case <-connsClosed:
+		case <-time.After(15 * time.Second):
+			panic("shutdown timeout")
+		}
+
 		logger.Log.Info("quit")
 	}
 }
