@@ -13,6 +13,8 @@ import (
 	"sync"
 
 	"github.com/pavlegich/metrics-alerting/internal/entities"
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
+	"github.com/pavlegich/metrics-alerting/internal/infra/crypto"
 	"github.com/pavlegich/metrics-alerting/internal/infra/hash"
 )
 
@@ -100,7 +102,7 @@ func (st *StatStorage) Update(ctx context.Context, memStats runtime.MemStats, co
 
 // Send конвертирует метрики в JSON формат, сжимает и подписыает данные,
 // формирует запрос POST на указанный адрес и отправляет данные.
-func Send(ctx context.Context, target string, key string, stats ...entities.Metrics) error {
+func Send(ctx context.Context, target string, cfg *config.AgentConfig, stats ...entities.Metrics) error {
 	req, err := json.Marshal(stats)
 	if err != nil {
 		return fmt.Errorf("Send: request marshal %w", err)
@@ -115,13 +117,22 @@ func Send(ctx context.Context, target string, key string, stats ...entities.Metr
 		return err
 	}
 
+	// Шифрование
+	if cfg.CryptoKey != "" {
+		encryptedReq, err := crypto.Encrypt(buf.Bytes(), cfg.CryptoKey)
+		if err != nil {
+			return fmt.Errorf("Send: encrypt failed %w", err)
+		}
+		buf = bytes.NewBuffer(encryptedReq)
+	}
+
 	r, err := http.NewRequestWithContext(ctx, http.MethodPost, target, buf)
 	if err != nil {
 		return fmt.Errorf("Send: new post request %w", err)
 	}
 
-	if key != "" {
-		hash, err := hash.Sign(buf.Bytes(), []byte(key))
+	if cfg.Key != "" {
+		hash, err := hash.Sign(buf.Bytes(), []byte(cfg.Key))
 		if err != nil {
 			return fmt.Errorf("Send: sign message failed %w", err)
 		}
@@ -131,6 +142,10 @@ func Send(ctx context.Context, target string, key string, stats ...entities.Metr
 	r.Header.Set("Content-Encoding", "gzip")
 	r.Header.Set("Accept-Encoding", "gzip")
 	r.Header.Set("Content-Type", "application/json")
+
+	if cfg.CryptoKey != "" {
+		r.Header.Set("Content-Encryption", "rsa")
+	}
 
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
@@ -143,9 +158,8 @@ func Send(ctx context.Context, target string, key string, stats ...entities.Metr
 }
 
 // SendBatch получает все метрики из хранилища и отправляет их по указанному адресу.
-func (st *StatStorage) SendBatch(ctx context.Context, url string, key string) error {
-
-	target := "http://" + url + "/updates/"
+func (st *StatStorage) SendBatch(ctx context.Context, cfg *config.AgentConfig) error {
+	target := "http://" + cfg.Address + "/updates/"
 
 	// Подготовка данных
 	stats := make([]entities.Metrics, 0)
@@ -155,7 +169,7 @@ func (st *StatStorage) SendBatch(ctx context.Context, url string, key string) er
 	}
 	st.mu.RUnlock()
 
-	if err := Send(ctx, target, key, stats...); err != nil {
+	if err := Send(ctx, target, cfg, stats...); err != nil {
 		return fmt.Errorf("SendBatch: send stats error %w", err)
 	}
 
@@ -164,9 +178,9 @@ func (st *StatStorage) SendBatch(ctx context.Context, url string, key string) er
 
 // SendJSON отправляет отдельно каждую метрику из хранилища в формате JSON
 // по указанному адресу.
-func (st *StatStorage) SendJSON(ctx context.Context, url string, key string) error {
+func (st *StatStorage) SendJSON(ctx context.Context, cfg *config.AgentConfig) error {
 	for _, stat := range st.stats {
-		target := "http://" + url + "/update/"
+		target := "http://" + cfg.Address + "/update/"
 
 		req, err := json.Marshal(stat)
 		if err != nil {
@@ -185,12 +199,12 @@ func (st *StatStorage) SendJSON(ctx context.Context, url string, key string) err
 
 // SendGZIP отправляет отдельно каждую метрику из хранилища
 // по указанному адресу, предварительно сжимая данные.
-func (st *StatStorage) SendGZIP(ctx context.Context, url string, key string) error {
+func (st *StatStorage) SendGZIP(ctx context.Context, cfg *config.AgentConfig) error {
 
 	for _, stat := range st.stats {
-		target := "http://" + url + "/update/"
+		target := "http://" + cfg.Address + "/update/"
 
-		if err := Send(ctx, target, key, stat); err != nil {
+		if err := Send(ctx, target, cfg, stat); err != nil {
 			return fmt.Errorf("SendBatch: send stats error %w", err)
 		}
 	}

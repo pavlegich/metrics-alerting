@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/pavlegich/metrics-alerting/internal/entities"
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 )
 
@@ -22,16 +22,11 @@ func ExampleWebhook_HandleGetMetric() {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
+	// Конфиг
+	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",
@@ -68,16 +63,11 @@ func ExampleWebhook_HandlePostValue() {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
+	// Конфиг
+	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",
@@ -126,16 +116,11 @@ func BenchmarkWebhook_HandleGetMetric(b *testing.B) {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
+	// Конфиг
+	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",
@@ -159,16 +144,11 @@ func BenchmarkWebhook_HandlePostValue(b *testing.B) {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
+	// Конфиг
+	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 	h.MemStorage = &storage.MemStorage{
 		Metrics: map[string]string{
 			"Gauger": "124.4",

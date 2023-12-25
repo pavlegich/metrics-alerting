@@ -42,7 +42,8 @@ func TestSaveToDB(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := SaveToDB(ctx, tt.args.db, tt.args.ms); (err != nil) != tt.wantErr {
+			database := NewDatabase(tt.args.db)
+			if err := database.Save(ctx, tt.args.ms); (err != nil) != tt.wantErr {
 				t.Errorf("SaveToDB() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -76,7 +77,8 @@ func TestLoadFromDB(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := LoadFromDB(ctx, tt.args.db, tt.args.ms); (err != nil) != tt.wantErr {
+			database := NewDatabase(tt.args.db)
+			if err := database.Load(ctx, tt.args.ms); (err != nil) != tt.wantErr {
 				t.Errorf("LoadFromDB() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

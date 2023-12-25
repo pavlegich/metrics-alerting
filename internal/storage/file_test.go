@@ -56,7 +56,8 @@ func TestSaveToFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := SaveToFile(ctx, tt.args.path, tt.args.ms); (err != nil) != tt.wantErr {
+			file := NewFile(tt.args.path)
+			if err := file.Save(ctx, tt.args.ms); (err != nil) != tt.wantErr {
 				t.Errorf("SaveToFile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -92,7 +93,8 @@ func TestLoadFromFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := LoadFromFile(ctx, tt.args.path, tt.args.ms); (err != nil) != tt.wantErr {
+			file := NewFile(tt.args.path)
+			if err := file.Load(ctx, tt.args.ms); (err != nil) != tt.wantErr {
 				t.Errorf("LoadFromFile() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

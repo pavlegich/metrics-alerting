@@ -11,6 +11,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/entities"
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/server/handlers"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -152,7 +153,9 @@ func TestStatStorage_SendBatch(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
-	h := handlers.NewWebhook(ctx, ms, db)
+	database := storage.NewDatabase(db)
+	cfg := &config.ServerConfig{}
+	h := handlers.NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 	addr, _ := strings.CutPrefix(ts.URL, "http://")
@@ -163,8 +166,7 @@ func TestStatStorage_SendBatch(t *testing.T) {
 		stats map[string]entities.Metrics
 	}
 	type args struct {
-		url string
-		key string
+		cfg *config.AgentConfig
 	}
 	tests := []struct {
 		name    string
@@ -189,8 +191,10 @@ func TestStatStorage_SendBatch(t *testing.T) {
 				},
 			},
 			args: args{
-				url: addr,
-				key: "",
+				cfg: &config.AgentConfig{
+					Address: addr,
+					Key:     "",
+				},
 			},
 			wantErr: false,
 		},
@@ -211,8 +215,10 @@ func TestStatStorage_SendBatch(t *testing.T) {
 				},
 			},
 			args: args{
-				url: "localhost:443",
-				key: "",
+				cfg: &config.AgentConfig{
+					Address: "localhost:443",
+					Key:     "",
+				},
 			},
 			wantErr: true,
 		},
@@ -222,21 +228,23 @@ func TestStatStorage_SendBatch(t *testing.T) {
 			st := &StatStorage{
 				stats: tt.fields.stats,
 			}
-			if err := st.SendBatch(ctx, tt.args.url, tt.args.key); (err != nil) != tt.wantErr {
+			if err := st.SendBatch(ctx, tt.args.cfg); (err != nil) != tt.wantErr {
 				t.Errorf("StatStorage.SendBatch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestMemStorage_SendJSON(t *testing.T) {
+func TestStatStorage_SendJSON(t *testing.T) {
 	// запуск сервера
 	ctx := context.Background()
 	ms := storage.NewMemStorage(ctx)
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
-	h := handlers.NewWebhook(ctx, ms, db)
+	database := storage.NewDatabase(db)
+	cfg := &config.ServerConfig{}
+	h := handlers.NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 	addr, _ := strings.CutPrefix(ts.URL, "http://")
@@ -246,12 +254,11 @@ func TestMemStorage_SendJSON(t *testing.T) {
 		stats map[string]entities.Metrics
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		method  string
-		address string
-		key     string
-		want    bool
+		name   string
+		fields fields
+		method string
+		cfg    *config.AgentConfig
+		want   bool
 	}{
 		{
 			name: "successful_gauge_request",
@@ -264,10 +271,12 @@ func TestMemStorage_SendJSON(t *testing.T) {
 					},
 				},
 			},
-			method:  http.MethodPost,
-			address: addr,
-			key:     "",
-			want:    false,
+			method: http.MethodPost,
+			cfg: &config.AgentConfig{
+				Address: addr,
+				Key:     "",
+			},
+			want: false,
 		},
 		{
 			name: "wrong_address",
@@ -280,10 +289,12 @@ func TestMemStorage_SendJSON(t *testing.T) {
 					},
 				},
 			},
-			method:  http.MethodPost,
-			address: "localhost:443",
-			key:     "",
-			want:    true,
+			method: http.MethodPost,
+			cfg: &config.AgentConfig{
+				Address: "localhost:443",
+				Key:     "",
+			},
+			want: true,
 		},
 	}
 	for _, tc := range tests {
@@ -291,7 +302,7 @@ func TestMemStorage_SendJSON(t *testing.T) {
 			st := &StatStorage{
 				stats: tc.fields.stats,
 			}
-			err := st.SendJSON(ctx, tc.address, tc.key)
+			err := st.SendJSON(ctx, tc.cfg)
 			if !tc.want {
 				assert.NoError(t, err)
 				return
@@ -307,7 +318,9 @@ func TestStatStorage_SendGZIP(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
-	h := handlers.NewWebhook(ctx, ms, db)
+	database := storage.NewDatabase(db)
+	cfg := &config.ServerConfig{}
+	h := handlers.NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 	addr, _ := strings.CutPrefix(ts.URL, "http://")
@@ -317,14 +330,10 @@ func TestStatStorage_SendGZIP(t *testing.T) {
 	type fields struct {
 		stats map[string]entities.Metrics
 	}
-	type args struct {
-		url string
-		key string
-	}
 	tests := []struct {
 		name    string
 		fields  fields
-		args    args
+		cfg     *config.AgentConfig
 		wantErr bool
 	}{
 		{
@@ -343,9 +352,9 @@ func TestStatStorage_SendGZIP(t *testing.T) {
 					},
 				},
 			},
-			args: args{
-				url: addr,
-				key: "",
+			cfg: &config.AgentConfig{
+				Address: addr,
+				Key:     "",
 			},
 			wantErr: false,
 		},
@@ -365,9 +374,9 @@ func TestStatStorage_SendGZIP(t *testing.T) {
 					},
 				},
 			},
-			args: args{
-				url: "localhost:443",
-				key: "",
+			cfg: &config.AgentConfig{
+				Address: "localhost:443",
+				Key:     "",
 			},
 			wantErr: true,
 		},
@@ -377,7 +386,7 @@ func TestStatStorage_SendGZIP(t *testing.T) {
 			st := &StatStorage{
 				stats: tt.fields.stats,
 			}
-			if err := st.SendGZIP(ctx, tt.args.url, tt.args.key); (err != nil) != tt.wantErr {
+			if err := st.SendGZIP(ctx, tt.cfg); (err != nil) != tt.wantErr {
 				t.Errorf("StatStorage.SendBatch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

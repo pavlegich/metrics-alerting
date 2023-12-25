@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 )
 
@@ -18,16 +18,11 @@ func ExampleWebhook_HandleMain() {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
+	// Конфиг
+	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/`
@@ -54,16 +49,11 @@ func BenchmarkWebhook_HandleMain(b *testing.B) {
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
 
-	// База данных
-	ps := "postgresql://localhost:5432/metrics"
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		fmt.Println("database open failed %w", err)
-	}
-	defer db.Close()
+	// Конфиг
+	cfg := &config.ServerConfig{}
 
 	// Контроллер
-	h := NewWebhook(ctx, ms, db)
+	h := NewWebhook(ctx, ms, nil, nil, cfg)
 
 	// Запрос к серверу
 	url := `http://localhost:8080/`

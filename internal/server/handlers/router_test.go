@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,7 +39,9 @@ func TestWebhook_HandleMain(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
-	h := NewWebhook(ctx, ms, db)
+	database := storage.NewDatabase(db)
+	cfg := &config.ServerConfig{}
+	h := NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
@@ -90,7 +93,9 @@ func TestCounterPost(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
-	h := NewWebhook(ctx, ms, db)
+	database := storage.NewDatabase(db)
+	cfg := &config.ServerConfig{}
+	h := NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
@@ -150,7 +155,9 @@ func TestGaugePost(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
-	h := NewWebhook(ctx, ms, db)
+	cfg := &config.ServerConfig{}
+	database := storage.NewDatabase(db)
+	h := NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
@@ -210,7 +217,9 @@ func TestGaugeGet(t *testing.T) {
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
 	defer db.Close()
-	h := NewWebhook(ctx, ms, db)
+	database := storage.NewDatabase(db)
+	cfg := &config.ServerConfig{}
+	h := NewWebhook(ctx, ms, database, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 

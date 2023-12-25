@@ -3,8 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/agent"
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"go.uber.org/zap"
 )
@@ -20,7 +26,9 @@ func main() {
 	fmt.Println("Build date:", buildDate)
 	fmt.Println("Build commit:", buildCommit)
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
+	wg := &sync.WaitGroup{}
 
 	// Инициализация логера
 	if err := logger.Init(ctx, "Info"); err != nil {
@@ -29,7 +37,7 @@ func main() {
 	defer logger.Log.Sync()
 
 	// Парсинг флагов
-	cfg, err := agent.ParseFlags(ctx)
+	cfg, err := config.AgentParseFlags(ctx)
 	if err != nil {
 		logger.Log.Error("main: parse flags error", zap.Error(err))
 	}
@@ -37,18 +45,40 @@ func main() {
 	// Хранилище метрик
 	statsStorage := agent.NewStatStorage(ctx)
 
-	c := make(chan int)
-
 	// Периодический опрос и отправка метрик
-	go agent.SendStats(ctx, statsStorage, cfg, c)
-	go agent.PollCPUstats(ctx, statsStorage, cfg, c)
-	go agent.PollMemStats(ctx, statsStorage, cfg, c)
+	wg.Add(1)
+	go func() {
+		agent.SendStats(ctx, statsStorage, cfg)
+		wg.Done()
+	}()
 
-	for {
-		_, ok := <-c
-		if !ok {
-			logger.Log.Info("routine channel is closed; exit")
-			break // exit
+	go func() {
+		agent.PollCPUstats(ctx, statsStorage, cfg)
+	}()
+
+	go func() {
+		agent.PollMemStats(ctx, statsStorage, cfg)
+	}()
+
+	<-ctx.Done()
+	if ctx.Err() != nil {
+		logger.Log.Info("shutting down gracefully...",
+			zap.Error(ctx.Err()))
+
+		// Ожидание завершения процессов
+		connsClosed := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(connsClosed)
+		}()
+
+		// Обработка завершения программы
+		select {
+		case <-connsClosed:
+		case <-time.After(15 * time.Second):
+			panic("shutdown timeout")
 		}
+
+		logger.Log.Info("quit")
 	}
 }

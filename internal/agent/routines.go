@@ -11,15 +11,17 @@ import (
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
+	"golang.org/x/sync/errgroup"
 
+	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	"go.uber.org/zap"
 )
 
-// PollCPUStats считывает информацию о занимаемой памяти с указанным интервалом времени
+// PollCPUstats считывает информацию о занимаемой памяти с указанным интервалом времени
 // и обновляет данные в хранилище.
-func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
+func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
 	interval := time.Duration(cfg.PollInterval) * time.Second
 
 	for {
@@ -36,13 +38,18 @@ func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, 
 		st.Put(ctx, "gauge", "FreeMemory", fmt.Sprintf("%v", v.Free))
 		st.Put(ctx, "gauge", "CPUutilization1", fmt.Sprintf("%v", c))
 
-		time.Sleep(interval)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(interval)
+		}
 	}
 }
 
 // PollMemStats считывает метрики с указанным интервалом времени
 // и обновляет данные в хранилище.
-func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
+func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
 	// Runtime метрики
 	var memStats runtime.MemStats
 
@@ -63,39 +70,69 @@ func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, 
 			logger.Log.Error("PollMemStats: stats update", zap.Error(err))
 		}
 
-		time.Sleep(interval)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(interval)
+		}
 	}
 }
 
 // SendStats создаёт worker-ов и отправляет данные из хранилища в работу worker-ам
 // через канал с указанным интервалом.
-func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *Config, c chan int) {
+func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
 	interval := time.Duration(cfg.ReportInterval) * time.Second
-	jobs := make(chan interfaces.StatsStorage)
-	for w := 1; w <= cfg.RateLimit; w++ {
-		go sendWorker(ctx, cfg, jobs)
-	}
 	for {
-		jobs <- st
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			jobs := make(chan interfaces.StatsStorage)
+			g := new(errgroup.Group)
+			for w := 1; w <= cfg.RateLimit; w++ {
+				g.Go(func() error {
+					return sendWorker(ctx, cfg, jobs)
+				})
+			}
+			jobs <- st
+			close(jobs)
+			if err := g.Wait(); err != nil {
+				logger.Log.Error("SendStats: sendWorker run failed",
+					zap.Error(err))
+			}
+		}
 		time.Sleep(interval)
 	}
 }
 
 // sendWorker принимает метрики из канала и отправляет их по указанному адресу.
 // Если соединение с сервером получить не удаётся, прерывает отправку метрик.
-func sendWorker(ctx context.Context, cfg *Config, jobs <-chan interfaces.StatsStorage) {
-	for j := range jobs {
-		var err error = nil
-		intervals := []time.Duration{0, time.Second, 3 * time.Second, 5 * time.Second}
-		for _, interval := range intervals {
-			time.Sleep(interval)
-			err = j.SendBatch(ctx, cfg.Address, cfg.Key)
-			if !errors.Is(err, syscall.ECONNREFUSED) {
-				break
+func sendWorker(ctx context.Context, cfg *config.AgentConfig, jobs <-chan interfaces.StatsStorage) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case job, ok := <-jobs:
+			if !ok {
+				return nil
 			}
-		}
-		if err != nil {
-			logger.Log.Error("sendWorker: send stats failed", zap.Error(err))
+			var err error = nil
+			intervals := []time.Duration{0, time.Second, 3 * time.Second, 5 * time.Second}
+			for _, interval := range intervals {
+				time.Sleep(interval)
+				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+				err = job.SendBatch(ctx, cfg)
+				cancel()
+				if !errors.Is(err, syscall.ECONNREFUSED) {
+					break
+				}
+			}
+			if err != nil {
+				return fmt.Errorf("sendWorker: send stats failed %w", err)
+				// logger.Log.Error("sendWorker: send stats failed",
+				// 	zap.Error(err))
+			}
 		}
 	}
 }
