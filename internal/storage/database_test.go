@@ -12,7 +12,9 @@ import (
 
 var ps string = "postgresql://localhost:5432/metrics"
 
-func TestSaveToDB(t *testing.T) {
+// var ps string = "postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable"
+
+func TestDatabase_Save(t *testing.T) {
 	ctx := context.Background()
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
@@ -50,7 +52,7 @@ func TestSaveToDB(t *testing.T) {
 	}
 }
 
-func TestLoadFromDB(t *testing.T) {
+func TestDatabase_Load(t *testing.T) {
 	ctx := context.Background()
 	db, err := sql.Open("pgx", ps)
 	require.NoError(t, err)
