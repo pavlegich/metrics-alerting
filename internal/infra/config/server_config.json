@@ -5,5 +5,5 @@
     "store_file": "",
     "database_dsn": "",
     "crypto_key": "",
-    "trusted_subnet": ""
+    "trusted_subnet": "172.17.0.0/24"
 }
