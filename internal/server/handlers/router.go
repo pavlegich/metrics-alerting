@@ -31,6 +31,7 @@ func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, databa
 func (h *Webhook) Route(ctx context.Context) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middlewares.WithLogging)
+	r.Use(middlewares.WithNetworking(h.Config.Network))
 	r.Use(middlewares.WithSign)
 	r.Use(middlewares.WithDecryption(h.Config.CryptoKey))
 	r.Use(middlewares.WithCompress)
