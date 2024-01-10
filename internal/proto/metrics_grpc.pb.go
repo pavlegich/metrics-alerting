@@ -20,63 +20,63 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Webhook_Ping_FullMethodName    = "/proto.Webhook/Ping"
-	Webhook_Updates_FullMethodName = "/proto.Webhook/Updates"
-	Webhook_Value_FullMethodName   = "/proto.Webhook/Value"
-	Webhook_Main_FullMethodName    = "/proto.Webhook/Main"
+	Metrics_Ping_FullMethodName    = "/proto.Metrics/Ping"
+	Metrics_Updates_FullMethodName = "/proto.Metrics/Updates"
+	Metrics_Update_FullMethodName  = "/proto.Metrics/Update"
+	Metrics_Value_FullMethodName   = "/proto.Metrics/Value"
 )
 
-// WebhookClient is the client API for Webhook service.
+// MetricsClient is the client API for Metrics service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type WebhookClient interface {
+type MetricsClient interface {
 	Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*PingResponse, error)
-	Updates(ctx context.Context, opts ...grpc.CallOption) (Webhook_UpdatesClient, error)
+	Updates(ctx context.Context, opts ...grpc.CallOption) (Metrics_UpdatesClient, error)
+	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error)
 	Value(ctx context.Context, in *ValueRequest, opts ...grpc.CallOption) (*ValueResponse, error)
-	Main(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Webhook_MainClient, error)
 }
 
-type webhookClient struct {
+type metricsClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewWebhookClient(cc grpc.ClientConnInterface) WebhookClient {
-	return &webhookClient{cc}
+func NewMetricsClient(cc grpc.ClientConnInterface) MetricsClient {
+	return &metricsClient{cc}
 }
 
-func (c *webhookClient) Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*PingResponse, error) {
+func (c *metricsClient) Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*PingResponse, error) {
 	out := new(PingResponse)
-	err := c.cc.Invoke(ctx, Webhook_Ping_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Metrics_Ping_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *webhookClient) Updates(ctx context.Context, opts ...grpc.CallOption) (Webhook_UpdatesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Webhook_ServiceDesc.Streams[0], Webhook_Updates_FullMethodName, opts...)
+func (c *metricsClient) Updates(ctx context.Context, opts ...grpc.CallOption) (Metrics_UpdatesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Metrics_ServiceDesc.Streams[0], Metrics_Updates_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &webhookUpdatesClient{stream}
+	x := &metricsUpdatesClient{stream}
 	return x, nil
 }
 
-type Webhook_UpdatesClient interface {
+type Metrics_UpdatesClient interface {
 	Send(*UpdatesRequest) error
 	CloseAndRecv() (*emptypb.Empty, error)
 	grpc.ClientStream
 }
 
-type webhookUpdatesClient struct {
+type metricsUpdatesClient struct {
 	grpc.ClientStream
 }
 
-func (x *webhookUpdatesClient) Send(m *UpdatesRequest) error {
+func (x *metricsUpdatesClient) Send(m *UpdatesRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *webhookUpdatesClient) CloseAndRecv() (*emptypb.Empty, error) {
+func (x *metricsUpdatesClient) CloseAndRecv() (*emptypb.Empty, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -87,124 +87,101 @@ func (x *webhookUpdatesClient) CloseAndRecv() (*emptypb.Empty, error) {
 	return m, nil
 }
 
-func (c *webhookClient) Value(ctx context.Context, in *ValueRequest, opts ...grpc.CallOption) (*ValueResponse, error) {
-	out := new(ValueResponse)
-	err := c.cc.Invoke(ctx, Webhook_Value_FullMethodName, in, out, opts...)
+func (c *metricsClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error) {
+	out := new(UpdateResponse)
+	err := c.cc.Invoke(ctx, Metrics_Update_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *webhookClient) Main(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Webhook_MainClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Webhook_ServiceDesc.Streams[1], Webhook_Main_FullMethodName, opts...)
+func (c *metricsClient) Value(ctx context.Context, in *ValueRequest, opts ...grpc.CallOption) (*ValueResponse, error) {
+	out := new(ValueResponse)
+	err := c.cc.Invoke(ctx, Metrics_Value_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &webhookMainClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
+	return out, nil
 }
 
-type Webhook_MainClient interface {
-	Recv() (*MainResponse, error)
-	grpc.ClientStream
-}
-
-type webhookMainClient struct {
-	grpc.ClientStream
-}
-
-func (x *webhookMainClient) Recv() (*MainResponse, error) {
-	m := new(MainResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// WebhookServer is the server API for Webhook service.
-// All implementations must embed UnimplementedWebhookServer
+// MetricsServer is the server API for Metrics service.
+// All implementations must embed UnimplementedMetricsServer
 // for forward compatibility
-type WebhookServer interface {
+type MetricsServer interface {
 	Ping(context.Context, *emptypb.Empty) (*PingResponse, error)
-	Updates(Webhook_UpdatesServer) error
+	Updates(Metrics_UpdatesServer) error
+	Update(context.Context, *UpdateRequest) (*UpdateResponse, error)
 	Value(context.Context, *ValueRequest) (*ValueResponse, error)
-	Main(*emptypb.Empty, Webhook_MainServer) error
-	mustEmbedUnimplementedWebhookServer()
+	mustEmbedUnimplementedMetricsServer()
 }
 
-// UnimplementedWebhookServer must be embedded to have forward compatible implementations.
-type UnimplementedWebhookServer struct {
+// UnimplementedMetricsServer must be embedded to have forward compatible implementations.
+type UnimplementedMetricsServer struct {
 }
 
-func (UnimplementedWebhookServer) Ping(context.Context, *emptypb.Empty) (*PingResponse, error) {
+func (UnimplementedMetricsServer) Ping(context.Context, *emptypb.Empty) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
-func (UnimplementedWebhookServer) Updates(Webhook_UpdatesServer) error {
+func (UnimplementedMetricsServer) Updates(Metrics_UpdatesServer) error {
 	return status.Errorf(codes.Unimplemented, "method Updates not implemented")
 }
-func (UnimplementedWebhookServer) Value(context.Context, *ValueRequest) (*ValueResponse, error) {
+func (UnimplementedMetricsServer) Update(context.Context, *UpdateRequest) (*UpdateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedMetricsServer) Value(context.Context, *ValueRequest) (*ValueResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Value not implemented")
 }
-func (UnimplementedWebhookServer) Main(*emptypb.Empty, Webhook_MainServer) error {
-	return status.Errorf(codes.Unimplemented, "method Main not implemented")
-}
-func (UnimplementedWebhookServer) mustEmbedUnimplementedWebhookServer() {}
+func (UnimplementedMetricsServer) mustEmbedUnimplementedMetricsServer() {}
 
-// UnsafeWebhookServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to WebhookServer will
+// UnsafeMetricsServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to MetricsServer will
 // result in compilation errors.
-type UnsafeWebhookServer interface {
-	mustEmbedUnimplementedWebhookServer()
+type UnsafeMetricsServer interface {
+	mustEmbedUnimplementedMetricsServer()
 }
 
-func RegisterWebhookServer(s grpc.ServiceRegistrar, srv WebhookServer) {
-	s.RegisterService(&Webhook_ServiceDesc, srv)
+func RegisterMetricsServer(s grpc.ServiceRegistrar, srv MetricsServer) {
+	s.RegisterService(&Metrics_ServiceDesc, srv)
 }
 
-func _Webhook_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Metrics_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WebhookServer).Ping(ctx, in)
+		return srv.(MetricsServer).Ping(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Webhook_Ping_FullMethodName,
+		FullMethod: Metrics_Ping_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebhookServer).Ping(ctx, req.(*emptypb.Empty))
+		return srv.(MetricsServer).Ping(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Webhook_Updates_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(WebhookServer).Updates(&webhookUpdatesServer{stream})
+func _Metrics_Updates_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MetricsServer).Updates(&metricsUpdatesServer{stream})
 }
 
-type Webhook_UpdatesServer interface {
+type Metrics_UpdatesServer interface {
 	SendAndClose(*emptypb.Empty) error
 	Recv() (*UpdatesRequest, error)
 	grpc.ServerStream
 }
 
-type webhookUpdatesServer struct {
+type metricsUpdatesServer struct {
 	grpc.ServerStream
 }
 
-func (x *webhookUpdatesServer) SendAndClose(m *emptypb.Empty) error {
+func (x *metricsUpdatesServer) SendAndClose(m *emptypb.Empty) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *webhookUpdatesServer) Recv() (*UpdatesRequest, error) {
+func (x *metricsUpdatesServer) Recv() (*UpdatesRequest, error) {
 	m := new(UpdatesRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -212,71 +189,67 @@ func (x *webhookUpdatesServer) Recv() (*UpdatesRequest, error) {
 	return m, nil
 }
 
-func _Webhook_Value_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Metrics_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetricsServer).Update(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Metrics_Update_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetricsServer).Update(ctx, req.(*UpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Metrics_Value_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ValueRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WebhookServer).Value(ctx, in)
+		return srv.(MetricsServer).Value(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Webhook_Value_FullMethodName,
+		FullMethod: Metrics_Value_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebhookServer).Value(ctx, req.(*ValueRequest))
+		return srv.(MetricsServer).Value(ctx, req.(*ValueRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Webhook_Main_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(emptypb.Empty)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(WebhookServer).Main(m, &webhookMainServer{stream})
-}
-
-type Webhook_MainServer interface {
-	Send(*MainResponse) error
-	grpc.ServerStream
-}
-
-type webhookMainServer struct {
-	grpc.ServerStream
-}
-
-func (x *webhookMainServer) Send(m *MainResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-// Webhook_ServiceDesc is the grpc.ServiceDesc for Webhook service.
+// Metrics_ServiceDesc is the grpc.ServiceDesc for Metrics service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Webhook_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "proto.Webhook",
-	HandlerType: (*WebhookServer)(nil),
+var Metrics_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "proto.Metrics",
+	HandlerType: (*MetricsServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Ping",
-			Handler:    _Webhook_Ping_Handler,
+			Handler:    _Metrics_Ping_Handler,
+		},
+		{
+			MethodName: "Update",
+			Handler:    _Metrics_Update_Handler,
 		},
 		{
 			MethodName: "Value",
-			Handler:    _Webhook_Value_Handler,
+			Handler:    _Metrics_Value_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Updates",
-			Handler:       _Webhook_Updates_Handler,
+			Handler:       _Metrics_Updates_Handler,
 			ClientStreams: true,
-		},
-		{
-			StreamName:    "Main",
-			Handler:       _Webhook_Main_Handler,
-			ServerStreams: true,
 		},
 	},
 	Metadata: "metrics.proto",

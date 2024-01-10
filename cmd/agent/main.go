@@ -56,6 +56,11 @@ func main() {
 		client = &httpagent.Agent{}
 	}
 
+	if client == nil {
+		logger.Log.Error("main: client is nil")
+		stop()
+	}
+
 	// Периодический опрос и отправка метрик
 	go func() {
 		agent.PollCPUstats(ctx, statsStorage, cfg)

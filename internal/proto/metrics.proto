@@ -6,11 +6,11 @@ option go_package = "github.com/pavlegich/metrics-alerting/internal/proto";
 
 import "google/protobuf/empty.proto";
 
-service Webhook {
+service Metrics {
     rpc Ping(google.protobuf.Empty) returns (PingResponse);
     rpc Updates(stream UpdatesRequest) returns (google.protobuf.Empty);
+    rpc Update(UpdateRequest) returns (UpdateResponse);
     rpc Value(ValueRequest) returns (ValueResponse);
-    rpc Main(google.protobuf.Empty) returns (stream MainResponse);
 }
 
 message PingResponse {
@@ -21,15 +21,19 @@ message UpdatesRequest {
     Metric metric = 1;
 }
 
+message UpdateRequest {
+    Metric metric = 1;
+}
+
+message UpdateResponse {
+    Metric metric = 1;
+}
+
 message ValueRequest {
     Metric metric = 1;
 }
 
 message ValueResponse {
-    Metric metric = 1;
-}
-
-message MainResponse {
     Metric metric = 1;
 }
 

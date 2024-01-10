@@ -9,17 +9,15 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	pb "github.com/pavlegich/metrics-alerting/internal/proto"
-	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type Controller struct {
-	pb.UnimplementedWebhookServer
+	pb.UnimplementedMetricsServer
 
 	MemStorage interfaces.MetricStorage
 	Database   interfaces.Storage
@@ -34,44 +32,83 @@ func NewController(ctx context.Context, ms interfaces.MetricStorage, db interfac
 	}
 }
 
-func (c *Controller) Ping(ctx context.Context, _ *emptypb.Empty) (*pb.PingResponse, error) {
-	err := c.Database.Ping(ctx)
-	if err != nil {
-		return &pb.PingResponse{Ok: false}, status.Errorf(codes.Internal, "Ping: connection with database is died %s", err)
-	}
-
-	return &pb.PingResponse{Ok: true}, nil
-}
-
-func (c *Controller) Updates(stream pb.Webhook_UpdatesServer) error {
+func (c *Controller) Updates(stream pb.Metrics_UpdatesServer) error {
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
 			return stream.SendAndClose(&emptypb.Empty{})
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("Updates: recieve stream failed %w", err)
 		}
 
-		if in.Metric.Type != "gauge" && in.Metric.Type != "counter" {
+		var mValue string
+		switch in.Metric.Type {
+		case "gauge":
+			mValue = fmt.Sprint(in.Metric.Value)
+		case "counter":
+			mValue = fmt.Sprint(in.Metric.Delta)
+		default:
 			return fmt.Errorf("Updates: invalid metric type %s", in.Metric.Type)
 		}
 
-		c.MemStorage.Put(context.Background(), in.Metric.Type, in.Metric.Id, fmt.Sprint(in.Metric.Value))
+		code := c.MemStorage.Put(stream.Context(), in.Metric.Type, in.Metric.Id, mValue)
+		if code != http.StatusOK {
+			return fmt.Errorf("Updates: put metric code %v", code)
+		}
 	}
 }
 
-func (c *Controller) Value(ctx context.Context, in *pb.ValueRequest) (*pb.ValueResponse, error) {
-	metric, statusCode := c.MemStorage.Get(ctx, in.Metric.Type, in.Metric.Id)
-	if statusCode != http.StatusOK {
-		switch statusCode {
-		case http.StatusNotFound:
-			return nil, status.Errorf(codes.NotFound, "Value: metric not found")
-		case http.StatusNotImplemented:
-			return nil, status.Errorf(codes.Unknown, "Value: unknown metric type")
-		default:
-			return nil, status.Errorf(codes.Internal, "Value: couldn't find metric")
+func (c *Controller) Update(ctx context.Context, in *pb.UpdateRequest) (*pb.UpdateResponse, error) {
+	var mValue string
+	switch in.Metric.Type {
+	case "gauge":
+		mValue = fmt.Sprint(in.Metric.Value)
+	case "counter":
+		mValue = fmt.Sprint(in.Metric.Delta)
+	default:
+		return nil, fmt.Errorf("Update: invalid metric type %s", in.Metric.Type)
+	}
+
+	code := c.MemStorage.Put(ctx, in.Metric.Type, in.Metric.Id, mValue)
+	if code != http.StatusOK {
+		return nil, fmt.Errorf("Update: put metric code %v", code)
+	}
+
+	pbMetric := &pb.Metric{
+		Id:   in.Metric.Id,
+		Type: in.Metric.Type,
+	}
+
+	mValue, code = c.MemStorage.Get(ctx, in.Metric.Type, in.Metric.Id)
+	if code != http.StatusOK {
+		return nil, fmt.Errorf("Value: get metric code %v", code)
+	}
+
+	switch pbMetric.Type {
+	case "gauge":
+		value, err := strconv.ParseFloat(mValue, 64)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Value: couldn't parse float")
 		}
+		pbMetric.Value = value
+	case "counter":
+		value, err := strconv.ParseInt(mValue, 10, 64)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Value: couldn't parse int")
+		}
+		pbMetric.Delta = value
+	}
+
+	return &pb.UpdateResponse{
+		Metric: pbMetric,
+	}, nil
+}
+
+func (c *Controller) Value(ctx context.Context, in *pb.ValueRequest) (*pb.ValueResponse, error) {
+	metric, code := c.MemStorage.Get(ctx, in.Metric.Type, in.Metric.Id)
+	if code != http.StatusOK {
+		return nil, fmt.Errorf("Value: get metric code %v", code)
 	}
 
 	respMetric := &pb.Metric{
@@ -92,11 +129,18 @@ func (c *Controller) Value(ctx context.Context, in *pb.ValueRequest) (*pb.ValueR
 			return nil, status.Errorf(codes.Internal, "Value: couldn't parse int")
 		}
 		respMetric.Delta = value
-	default:
-		logger.Log.Error("main: invalid metric type", zap.String("type", in.Metric.Type))
 	}
 
 	return &pb.ValueResponse{
 		Metric: respMetric,
 	}, nil
+}
+
+func (c *Controller) Ping(ctx context.Context, _ *emptypb.Empty) (*pb.PingResponse, error) {
+	err := c.Database.Ping(ctx)
+	if err != nil {
+		return &pb.PingResponse{Ok: false}, status.Errorf(codes.Internal, "Ping: connection with database is died %s", err)
+	}
+
+	return &pb.PingResponse{Ok: true}, nil
 }

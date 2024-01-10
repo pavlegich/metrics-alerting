@@ -23,3 +23,21 @@ func ConvertFromMetricsToGRPC(metric entities.Metrics) (*pb.Metric, error) {
 
 	return pbMetric, nil
 }
+
+// func ConvertFromGRPCToMetrics(pbMetric *pb.Metric) (entities.Metrics, error) {
+// 	metric := entities.Metrics{
+// 		ID: pbMetric.Id,
+// 		MType: pbMetric.Type,
+// 	}
+
+// 	switch metric.MType {
+// 	case "gauge":
+// 		metric.Value = &pbMetric.Value
+// 	case "counter":
+// 		pbMetric.Delta = *metric.Delta
+// 	default:
+// 		return nil, fmt.Errorf("ConvertFromMetricsToGRPC: invalid metric type %s", metric.MType)
+// 	}
+
+// 	return pbMetric, nil
+// }

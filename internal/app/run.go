@@ -4,7 +4,7 @@ package app
 import (
 	"context"
 	"database/sql"
-	"net"
+	"fmt"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -13,19 +13,16 @@ import (
 	"syscall"
 	"time"
 
-	pb "github.com/pavlegich/metrics-alerting/internal/proto"
-	"google.golang.org/grpc"
+	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 
-	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/infra/database"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
-	grpcserver "github.com/pavlegich/metrics-alerting/internal/server/grpcserver/handlers"
+	"github.com/pavlegich/metrics-alerting/internal/server"
+	"github.com/pavlegich/metrics-alerting/internal/server/grpcserver"
 	"github.com/pavlegich/metrics-alerting/internal/server/httpserver"
-	"github.com/pavlegich/metrics-alerting/internal/server/httpserver/handlers"
-	"github.com/pavlegich/metrics-alerting/internal/server/httpserver/middlewares"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"go.uber.org/zap"
 )
@@ -75,9 +72,6 @@ func Run(idleConnsClosed chan struct{}) error {
 	// Файл
 	file := storage.NewFile(cfg.StoragePath)
 
-	// Контроллер
-	webhook := handlers.NewWebhook(ctx, memStorage, database, file, cfg)
-
 	// Ключ для хеширования
 	if cfg.Key != "" {
 		entities.Key = cfg.Key
@@ -87,34 +81,41 @@ func Run(idleConnsClosed chan struct{}) error {
 	if cfg.Restore {
 		switch {
 		case cfg.Database != "":
-			if err := database.Load(ctx, webhook.MemStorage); err != nil {
+			if err := database.Load(ctx, memStorage); err != nil {
 				logger.Log.Error("Run: restore storage from database failed", zap.Error(err))
 			}
 		case cfg.StoragePath != "":
-			if err := file.Load(ctx, webhook.MemStorage); err != nil {
+			if err := file.Load(ctx, memStorage); err != nil {
 				logger.Log.Error("Run: restore storage from file failed", zap.Error(err))
 			}
 		}
 	}
 
+	// Сервер
+	var srv interfaces.Server = nil
+	if cfg.Grpc != "" {
+		srv = grpcserver.NewServer(ctx, memStorage, database, file, cfg)
+	} else if cfg.Address != "" {
+		srv = httpserver.NewServer(ctx, memStorage, database, file, cfg)
+	}
+
+	if srv == nil {
+		return fmt.Errorf("Run: server is nil")
+	}
+
 	// Хранение данных в базе данных или файле
 	if cfg.Database != "" || cfg.StoragePath != "" {
-		saveFunc := httpserver.SaveToFileRoutine
+		saveFunc := server.SaveToFileRoutine
 		if cfg.Database != "" {
-			saveFunc = httpserver.SaveToDBRoutine
+			saveFunc = server.SaveToDBRoutine
 		}
 
 		wg.Add(1)
 		go func() {
-			saveFunc(ctx, webhook, storeInterval)
+			saveFunc(ctx, memStorage, database, file, storeInterval)
 			wg.Done()
 		}()
 	}
-
-	// Роутер
-	r := chi.NewRouter()
-	r.Use(middlewares.Recovery)
-	r.Mount("/", webhook.Route(ctx))
 
 	// Профилирование
 	mux := http.NewServeMux()
@@ -127,46 +128,21 @@ func Run(idleConnsClosed chan struct{}) error {
 		profile.ListenAndServe()
 	}()
 
-	// gRPC
-	if cfg.Grpc != "" {
-		go func() {
-			controller := grpcserver.NewController(ctx, memStorage, database, file)
-
-			var opts []grpc.ServerOption
-			// opts = append(opts, )
-
-			serv := grpc.NewServer(opts...)
-			pb.RegisterWebhookServer(serv, controller)
-			listen, err := net.Listen("tcp", cfg.Grpc)
-			if err != nil {
-				logger.Log.Error("Run: announce listen failed", zap.Error(err))
-			}
-			logger.Log.Info("running gRPC server", zap.String("addr", cfg.Grpc))
-			err = serv.Serve(listen)
-			if err != nil {
-				logger.Log.Error("Run: serve grpc failed", zap.Error(err))
-			}
-		}()
-	}
-
-	// Сервер
-	srv := http.Server{
-		Addr:    cfg.Address,
-		Handler: r,
-	}
-
 	// Завершение программы
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
 		sig := <-sigs
+		fmt.Println("got sig")
 		ctxShutDown, cancelShutDown := context.WithTimeout(ctx, 5*time.Second)
 		defer cancelShutDown()
 
+		fmt.Println("start shutdown")
 		if err := srv.Shutdown(ctxShutDown); err != nil {
 			logger.Log.Error("server shutdown failed",
 				zap.Error(err))
 		}
+		fmt.Println("end shutdown")
 		if err := profile.Shutdown(ctxShutDown); err != nil {
 			logger.Log.Error("profile shutdown failed",
 				zap.Error(err))
@@ -179,7 +155,7 @@ func Run(idleConnsClosed chan struct{}) error {
 		close(idleConnsClosed)
 	}()
 
-	logger.Log.Info("running server", zap.String("addr", cfg.Address))
+	logger.Log.Info("running server", zap.String("addr", srv.GetAddress(ctx)))
 
-	return srv.ListenAndServe()
+	return srv.Serve(ctx)
 }

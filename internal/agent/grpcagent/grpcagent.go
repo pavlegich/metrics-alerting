@@ -30,7 +30,7 @@ func (a *Agent) SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *
 	if err != nil {
 		logger.Log.Error("SendStats: create client connection failed", zap.Error(err))
 	}
-	client := pb.NewWebhookClient(conn)
+	client := pb.NewMetricsClient(conn)
 	defer conn.Close()
 
 	stream, err := client.Updates(ctx)
@@ -65,7 +65,7 @@ func (a *Agent) SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *
 
 // sendWorker принимает метрики из канала и отправляет их по указанному адресу.
 // Если соединение с сервером получить не удаётся, прерывает отправку метрик.
-func sendWorker(ctx context.Context, cfg *config.AgentConfig, jobs <-chan interfaces.StatsStorage, stream pb.Webhook_UpdatesClient) error {
+func sendWorker(ctx context.Context, cfg *config.AgentConfig, jobs <-chan interfaces.StatsStorage, stream pb.Metrics_UpdatesClient) error {
 	for {
 		select {
 		case <-ctx.Done():
