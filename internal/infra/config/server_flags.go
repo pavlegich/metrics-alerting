@@ -14,6 +14,7 @@ import (
 // ServerConfig содержит значения флагов и переменных окружения сервера.
 type ServerConfig struct {
 	Address       string `env:"ADDRESS" json:"address"`
+	Grpc          string `env:"GRPC" json:"grpc"`
 	StoragePath   string `env:"FILE_STORAGE_PATH" json:"store_file"`
 	Database      string `env:"DATABASE_DSN" json:"database_dsn"`
 	Key           string `env:"KEY" json:"key"`
@@ -31,6 +32,7 @@ func ServerParseFlags(ctx context.Context) (*ServerConfig, error) {
 	cfg := &ServerConfig{}
 
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "HTTP-server endpoint address host:port")
+	flag.StringVar(&cfg.Grpc, "grpc", "", "gRPC-server endpoint address host:port")
 	flag.StringVar(&cfg.StoragePath, "f", "/tmp/metrics-db.json", "Full path of values storage")
 	flag.StringVar(&cfg.Database, "d", "", "URI (DSN) to database")
 	flag.StringVar(&cfg.Key, "k", "", "Key for sign")

@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
-	"github.com/pavlegich/metrics-alerting/internal/server/middlewares"
+	"github.com/pavlegich/metrics-alerting/internal/server/httpserver/middlewares"
 )
 
 // Webhook содержит локальное хранилище метрик и базу данных для сервера.

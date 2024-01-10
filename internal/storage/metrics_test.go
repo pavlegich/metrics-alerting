@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
@@ -300,7 +301,7 @@ func TestNewMemStorage(t *testing.T) {
 	}{
 		{
 			name: "storage_created",
-			want: &MemStorage{map[string]string{}},
+			want: &MemStorage{map[string]string{}, &sync.Mutex{}},
 		},
 	}
 	for _, tc := range tests {

@@ -12,7 +12,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
-	"github.com/pavlegich/metrics-alerting/internal/server/handlers"
+	"github.com/pavlegich/metrics-alerting/internal/server/httpserver/handlers"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

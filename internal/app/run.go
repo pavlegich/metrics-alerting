@@ -4,7 +4,7 @@ package app
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -13,15 +13,19 @@ import (
 	"syscall"
 	"time"
 
+	pb "github.com/pavlegich/metrics-alerting/internal/proto"
+	"google.golang.org/grpc"
+
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/infra/database"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
-	"github.com/pavlegich/metrics-alerting/internal/server"
-	"github.com/pavlegich/metrics-alerting/internal/server/handlers"
-	"github.com/pavlegich/metrics-alerting/internal/server/middlewares"
+	grpcserver "github.com/pavlegich/metrics-alerting/internal/server/grpcserver/handlers"
+	"github.com/pavlegich/metrics-alerting/internal/server/httpserver"
+	"github.com/pavlegich/metrics-alerting/internal/server/httpserver/handlers"
+	"github.com/pavlegich/metrics-alerting/internal/server/httpserver/middlewares"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"go.uber.org/zap"
 )
@@ -41,7 +45,7 @@ func Run(idleConnsClosed chan struct{}) error {
 	// Флаги
 	cfg, err := config.ServerParseFlags(ctx)
 	if err != nil {
-		return fmt.Errorf("Run: parse flags error %w", err)
+		logger.Log.Error("Run: parse flags error", zap.Error(err))
 	}
 
 	// Интервалы
@@ -95,9 +99,9 @@ func Run(idleConnsClosed chan struct{}) error {
 
 	// Хранение данных в базе данных или файле
 	if cfg.Database != "" || cfg.StoragePath != "" {
-		saveFunc := server.SaveToFileRoutine
+		saveFunc := httpserver.SaveToFileRoutine
 		if cfg.Database != "" {
-			saveFunc = server.SaveToDBRoutine
+			saveFunc = httpserver.SaveToDBRoutine
 		}
 
 		wg.Add(1)
@@ -122,6 +126,28 @@ func Run(idleConnsClosed chan struct{}) error {
 	go func() {
 		profile.ListenAndServe()
 	}()
+
+	// gRPC
+	if cfg.Grpc != "" {
+		go func() {
+			controller := grpcserver.NewController(ctx, memStorage, database, file)
+
+			var opts []grpc.ServerOption
+			// opts = append(opts, )
+
+			serv := grpc.NewServer(opts...)
+			pb.RegisterWebhookServer(serv, controller)
+			listen, err := net.Listen("tcp", cfg.Grpc)
+			if err != nil {
+				logger.Log.Error("Run: announce listen failed", zap.Error(err))
+			}
+			logger.Log.Info("running gRPC server", zap.String("addr", cfg.Grpc))
+			err = serv.Serve(listen)
+			if err != nil {
+				logger.Log.Error("Run: serve grpc failed", zap.Error(err))
+			}
+		}()
+	}
 
 	// Сервер
 	srv := http.Server{

@@ -1,11 +1,11 @@
-package server
+package httpserver
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/pavlegich/metrics-alerting/internal/server/handlers"
+	"github.com/pavlegich/metrics-alerting/internal/server/httpserver/handlers"
 )
 
 // SaveToFileRoutine сохраняет метрики в файл с указанным интервалом времени.

@@ -1,3 +1,4 @@
+// Пакет agent содержит методы для обновления метрик
 package agent
 
 import (
@@ -7,21 +8,28 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"runtime"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/infra/crypto"
 	"github.com/pavlegich/metrics-alerting/internal/infra/hash"
+	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
+	"github.com/pavlegich/metrics-alerting/internal/interfaces"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/mem"
+	"go.uber.org/zap"
 )
 
 // StatStorage хранит метрики агента.
 type StatStorage struct {
 	stats map[string]entities.Metrics
-	mu    sync.RWMutex
+	mu    sync.Mutex
 }
 
 // NewStatStorage создаёт новый объект хранилища агента.
@@ -163,12 +171,7 @@ func (st *StatStorage) SendBatch(ctx context.Context, cfg *config.AgentConfig) e
 	target := "http://" + cfg.Address + "/updates/"
 
 	// Подготовка данных
-	stats := make([]entities.Metrics, 0)
-	st.mu.RLock()
-	for _, s := range st.stats {
-		stats = append(stats, s)
-	}
-	st.mu.RUnlock()
+	stats := st.GetAll(ctx)
 
 	if err := Send(ctx, target, cfg, stats...); err != nil {
 		return fmt.Errorf("SendBatch: send stats error %w", err)
@@ -210,4 +213,74 @@ func (st *StatStorage) SendGZIP(ctx context.Context, cfg *config.AgentConfig) er
 		}
 	}
 	return nil
+}
+
+func (st *StatStorage) GetAll(ctx context.Context) []entities.Metrics {
+	m := []entities.Metrics{}
+	st.mu.Lock()
+	for _, v := range st.stats {
+		m = append(m, v)
+	}
+	st.mu.Unlock()
+	return m
+}
+
+// PollCPUstats считывает информацию о занимаемой памяти с указанным интервалом времени
+// и обновляет данные в хранилище.
+func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
+	interval := time.Duration(cfg.PollInterval) * time.Second
+
+	for {
+		v, err := mem.VirtualMemory()
+		if err != nil {
+			logger.Log.Error("PollGoutilStats: get virtual memory stats failed", zap.Error(err))
+		}
+		c, err := cpu.PercentWithContext(ctx, 0, false)
+		if err != nil {
+			logger.Log.Error("PollGoutilStats: get cpu stats failed", zap.Error(err))
+		}
+
+		st.Put(ctx, "gauge", "TotalMemory", fmt.Sprintf("%v", v.Total))
+		st.Put(ctx, "gauge", "FreeMemory", fmt.Sprintf("%v", v.Free))
+		st.Put(ctx, "gauge", "CPUutilization1", fmt.Sprintf("%v", c))
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(interval)
+		}
+	}
+}
+
+// PollMemStats считывает метрики с указанным интервалом времени
+// и обновляет данные в хранилище.
+func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
+	// Runtime метрики
+	var memStats runtime.MemStats
+
+	// Дополнительные метрики
+	pollCount := 0
+	var randomValue float64
+
+	interval := time.Duration(cfg.PollInterval) * time.Second
+
+	for {
+		// Обновление метрик
+		runtime.ReadMemStats(&memStats)
+		pollCount += 1
+		randomValue = rand.Float64()
+
+		// Обновление метрик
+		if err := st.Update(ctx, memStats, pollCount, randomValue); err != nil {
+			logger.Log.Error("PollMemStats: stats update", zap.Error(err))
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(interval)
+		}
+	}
 }

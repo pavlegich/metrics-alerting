@@ -5,6 +5,7 @@ import (
 	"context"
 	"runtime"
 
+	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 )
 
@@ -16,6 +17,7 @@ type (
 		SendBatch(ctx context.Context, cfg *config.AgentConfig) error
 		Update(ctx context.Context, memStats runtime.MemStats, count int, rand float64) error
 		Put(ctx context.Context, sType string, name string, value string) error
+		GetAll(ctx context.Context) []entities.Metrics
 	}
 
 	// MetricStorage содержит методы для работы с метрики на сервере.

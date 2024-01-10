@@ -1,16 +1,13 @@
-package agent
+// Пакет httpagent содержит объекты и методы для работы с http-агентом.
+package httpagent
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
-	"runtime"
 	"syscall"
 	"time"
 
-	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/mem"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
@@ -19,69 +16,12 @@ import (
 	"go.uber.org/zap"
 )
 
-// PollCPUstats считывает информацию о занимаемой памяти с указанным интервалом времени
-// и обновляет данные в хранилище.
-func PollCPUstats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
-	interval := time.Duration(cfg.PollInterval) * time.Second
-
-	for {
-		v, err := mem.VirtualMemory()
-		if err != nil {
-			logger.Log.Error("PollGoutilStats: get virtual memory stats failed", zap.Error(err))
-		}
-		c, err := cpu.PercentWithContext(ctx, 0, false)
-		if err != nil {
-			logger.Log.Error("PollGoutilStats: get cpu stats failed", zap.Error(err))
-		}
-
-		st.Put(ctx, "gauge", "TotalMemory", fmt.Sprintf("%v", v.Total))
-		st.Put(ctx, "gauge", "FreeMemory", fmt.Sprintf("%v", v.Free))
-		st.Put(ctx, "gauge", "CPUutilization1", fmt.Sprintf("%v", c))
-
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			time.Sleep(interval)
-		}
-	}
-}
-
-// PollMemStats считывает метрики с указанным интервалом времени
-// и обновляет данные в хранилище.
-func PollMemStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
-	// Runtime метрики
-	var memStats runtime.MemStats
-
-	// Дополнительные метрики
-	pollCount := 0
-	var randomValue float64
-
-	interval := time.Duration(cfg.PollInterval) * time.Second
-
-	for {
-		// Обновление метрик
-		runtime.ReadMemStats(&memStats)
-		pollCount += 1
-		randomValue = rand.Float64()
-
-		// Обновление метрик
-		if err := st.Update(ctx, memStats, pollCount, randomValue); err != nil {
-			logger.Log.Error("PollMemStats: stats update", zap.Error(err))
-		}
-
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			time.Sleep(interval)
-		}
-	}
+type Agent struct {
 }
 
 // SendStats создаёт worker-ов и отправляет данные из хранилища в работу worker-ам
 // через канал с указанным интервалом.
-func SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
+func (a *Agent) SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
 	interval := time.Duration(cfg.ReportInterval) * time.Second
 	for {
 		select {
