@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// WithNetworking проверяет соответствие IP адреса клиента указанному доверенному диапозону
+// WithNetworking проверяет соответствие IP адреса клиента указанному доверенному диапозону.
 func WithNetworking(network *net.IPNet) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

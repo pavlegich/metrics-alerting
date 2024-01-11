@@ -24,6 +24,8 @@ import (
 type Agent struct {
 }
 
+// SendStats создаёт worker-ы и отправляет данные из хранилища в работу worker-ам
+// через канал с указанным интервалом.
 func (a *Agent) SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
 	interval := time.Duration(time.Duration(cfg.ReportInterval) * time.Second)
 

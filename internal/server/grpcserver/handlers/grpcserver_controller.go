@@ -16,6 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
+// Controller содержит данные для работы с grpc-сервером
 type Controller struct {
 	pb.UnimplementedMetricsServer
 
@@ -24,6 +25,7 @@ type Controller struct {
 	File       interfaces.Storage
 }
 
+// NewController создаёт новый контроллер для grpc-сервера
 func NewController(ctx context.Context, ms interfaces.MetricStorage, db interfaces.Storage, file interfaces.Storage) *Controller {
 	return &Controller{
 		MemStorage: ms,
@@ -32,6 +34,7 @@ func NewController(ctx context.Context, ms interfaces.MetricStorage, db interfac
 	}
 }
 
+// Updates обрабатывает и сохраняет полученные метрики.
 func (c *Controller) Updates(stream pb.Metrics_UpdatesServer) error {
 	for {
 		in, err := stream.Recv()
@@ -59,6 +62,9 @@ func (c *Controller) Updates(stream pb.Metrics_UpdatesServer) error {
 	}
 }
 
+// Update обрабатывает и сохраняет полученную в proto-формате метрику.
+// В случае успешного сохранения обработчик получает новое значение метрики
+// из хранилища и отправляет в ответ метрику в proto-формате.
 func (c *Controller) Update(ctx context.Context, in *pb.UpdateRequest) (*pb.UpdateResponse, error) {
 	var mValue string
 	switch in.Metric.Type {
@@ -105,6 +111,10 @@ func (c *Controller) Update(ctx context.Context, in *pb.UpdateRequest) (*pb.Upda
 	}, nil
 }
 
+// Value обрабатывает запрос на получение значения метрики.
+// Обработчик принимает в proto-формате название и тип метрики,
+// в случае успешного получения значения метрики из хранилища,
+// формирует и отправляет ответ с метрикой в proto-формате.
 func (c *Controller) Value(ctx context.Context, in *pb.ValueRequest) (*pb.ValueResponse, error) {
 	metric, code := c.MemStorage.Get(ctx, in.Metric.Type, in.Metric.Id)
 	if code != http.StatusOK {

@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// WithStreamLogging логирует события из обработчиков.
 func WithStreamLogging(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	logger.Log.Info("stream method called",
 		zap.String("method", info.FullMethod))
@@ -22,6 +23,7 @@ func WithStreamLogging(srv interface{}, ss grpc.ServerStream, info *grpc.StreamS
 
 }
 
+// WithUnaryLogging логирует события из обработчиков.
 func WithUnaryLogging(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	logger.Log.Info("unary method called",
 		zap.String("method", info.FullMethod))
