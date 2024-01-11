@@ -36,8 +36,8 @@ func AgentParseFlags(ctx context.Context) (*AgentConfig, error) {
 	flag.IntVar(&cfg.RateLimit, "l", 1, "Number of simultaneous requests to the server")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "Path to public key")
 	flag.StringVar(&cfg.IP, "ip", "", "Real agent IP")
-	flag.StringVar(&cfg.Config, "config", "/Users/Pavel/Desktop/Go.Edu/metrics-alerting/internal/infra/config/agent_config.json", "Path to config")
-	// flag.StringVar(&cfg.Config, "config", "", "Path to config")
+	// flag.StringVar(&cfg.Config, "config", "/Users/Pavel/Desktop/Go.Edu/metrics-alerting/internal/infra/config/agent_config.json", "Path to config")
+	flag.StringVar(&cfg.Config, "config", "", "Path to config")
 	flag.StringVar(&cfg.Config, "c", cfg.Config, "alias for -config")
 
 	flag.Parse()

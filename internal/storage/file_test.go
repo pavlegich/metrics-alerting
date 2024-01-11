@@ -8,7 +8,7 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 )
 
-func TestNewFileMetrics(t *testing.T) {
+func TestFile_New(t *testing.T) {
 	tests := []struct {
 		name string
 		want *FileMetrics
@@ -27,7 +27,7 @@ func TestNewFileMetrics(t *testing.T) {
 	}
 }
 
-func TestSaveToFile(t *testing.T) {
+func TestFile_Save(t *testing.T) {
 	ctx := context.Background()
 	filePath := "/tmp/metrics-db.json"
 
@@ -64,7 +64,7 @@ func TestSaveToFile(t *testing.T) {
 	}
 }
 
-func TestLoadFromFile(t *testing.T) {
+func TestFile_Load(t *testing.T) {
 	ctx := context.Background()
 	filePath := "/tmp/metrics-db.json"
 

@@ -37,8 +37,8 @@ func ServerParseFlags(ctx context.Context) (*ServerConfig, error) {
 	flag.StringVar(&cfg.Database, "d", "", "URI (DSN) to database")
 	flag.StringVar(&cfg.Key, "k", "", "Key for sign")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "Path to private key")
-	flag.StringVar(&cfg.Config, "config", "/Users/Pavel/Desktop/Go.Edu/metrics-alerting/internal/infra/config/server_config.json", "Path to config")
-	// flag.StringVar(&cfg.Config, "config", "", "Path to config")
+	// flag.StringVar(&cfg.Config, "config", "/Users/Pavel/Desktop/Go.Edu/metrics-alerting/internal/infra/config/server_config.json", "Path to config")
+	flag.StringVar(&cfg.Config, "config", "", "Path to config")
 	flag.StringVar(&cfg.Config, "c", cfg.Config, "alias for -config")
 	flag.StringVar(&cfg.TrustedSubnet, "t", "", "Trusted subnet CIDR")
 	// 172.17.0.0/24

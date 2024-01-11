@@ -134,16 +134,13 @@ func Run(idleConnsClosed chan struct{}) error {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
 		sig := <-sigs
-		fmt.Println("got sig")
 		ctxShutDown, cancelShutDown := context.WithTimeout(ctx, 5*time.Second)
 		defer cancelShutDown()
 
-		fmt.Println("start shutdown")
 		if err := srv.Shutdown(ctxShutDown); err != nil {
 			logger.Log.Error("server shutdown failed",
 				zap.Error(err))
 		}
-		fmt.Println("end shutdown")
 		if err := profile.Shutdown(ctxShutDown); err != nil {
 			logger.Log.Error("profile shutdown failed",
 				zap.Error(err))

@@ -21,17 +21,15 @@ func ExampleWebhook_HandleGetMetric() {
 
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
+	ms.Metrics = map[string]string{
+		"Gauger": "124.4",
+	}
 
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
 	h := NewWebhook(ctx, ms, nil, nil, cfg)
-	h.MemStorage = &storage.MemStorage{
-		Metrics: map[string]string{
-			"Gauger": "124.4",
-		},
-	}
 
 	// Запрос к серверу
 	url := `http://localhost:8080/value/gauge/Gauger`
@@ -62,17 +60,15 @@ func ExampleWebhook_HandlePostValue() {
 
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
+	ms.Metrics = map[string]string{
+		"Gauger": "124.4",
+	}
 
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
 	h := NewWebhook(ctx, ms, nil, nil, cfg)
-	h.MemStorage = &storage.MemStorage{
-		Metrics: map[string]string{
-			"Gauger": "124.4",
-		},
-	}
 
 	// Подготовка данных для запроса
 	url := `http://localhost:8080/value/`
@@ -115,17 +111,15 @@ func BenchmarkWebhook_HandleGetMetric(b *testing.B) {
 
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
+	ms.Metrics = map[string]string{
+		"Gauger": "124.4",
+	}
 
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
 	h := NewWebhook(ctx, ms, nil, nil, cfg)
-	h.MemStorage = &storage.MemStorage{
-		Metrics: map[string]string{
-			"Gauger": "124.4",
-		},
-	}
 
 	// Запрос к серверу
 	url := `http://localhost:8080/value/gauge/Gauger`
@@ -143,17 +137,15 @@ func BenchmarkWebhook_HandlePostValue(b *testing.B) {
 
 	// Хранилище
 	ms := storage.NewMemStorage(ctx)
+	ms.Metrics = map[string]string{
+		"Gauger": "124.4",
+	}
 
 	// Конфиг
 	cfg := &config.ServerConfig{}
 
 	// Контроллер
 	h := NewWebhook(ctx, ms, nil, nil, cfg)
-	h.MemStorage = &storage.MemStorage{
-		Metrics: map[string]string{
-			"Gauger": "124.4",
-		},
-	}
 
 	// Подготовка данных для запроса
 	url := `http://localhost:8080/value/`
