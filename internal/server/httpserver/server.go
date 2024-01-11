@@ -13,7 +13,7 @@ import (
 )
 
 type Server struct {
-	server http.Server
+	server *http.Server
 	config *config.ServerConfig
 }
 
@@ -27,7 +27,7 @@ func NewServer(ctx context.Context, memStorage interfaces.MetricStorage, databas
 	r.Mount("/", controller.Route(ctx))
 
 	// Сервер
-	srv := http.Server{
+	srv := &http.Server{
 		Addr:    cfg.Address,
 		Handler: r,
 	}
