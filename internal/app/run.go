@@ -119,15 +119,18 @@ func Run(idleConnsClosed chan struct{}) error {
 	}
 
 	// Профилирование
-	mux := http.NewServeMux()
-	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	profile := http.Server{
-		Addr:    "localhost:8081",
-		Handler: mux,
+	var profile *http.Server = nil
+	if cfg.Profile != "" {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		profile := &http.Server{
+			Addr:    cfg.Profile,
+			Handler: mux,
+		}
+		go func() {
+			profile.ListenAndServe()
+		}()
 	}
-	go func() {
-		profile.ListenAndServe()
-	}()
 
 	// Завершение программы
 	sigs := make(chan os.Signal, 1)
@@ -141,9 +144,11 @@ func Run(idleConnsClosed chan struct{}) error {
 			logger.Log.Error("server shutdown failed",
 				zap.Error(err))
 		}
-		if err := profile.Shutdown(ctxShutDown); err != nil {
-			logger.Log.Error("profile shutdown failed",
-				zap.Error(err))
+		if profile != nil {
+			if err := profile.Shutdown(ctxShutDown); err != nil {
+				logger.Log.Error("profile shutdown failed",
+					zap.Error(err))
+			}
 		}
 
 		cancelRun()

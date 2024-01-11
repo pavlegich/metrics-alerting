@@ -25,6 +25,10 @@ import (
 type Agent struct {
 }
 
+func NewAgent(ctx context.Context) *Agent {
+	return &Agent{}
+}
+
 // SendStats создаёт worker-ы и отправляет данные из хранилища в работу worker-ам
 // через канал с указанным интервалом.
 func (a *Agent) SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
@@ -35,7 +39,6 @@ func (a *Agent) SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *
 	opts = append(opts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 
 	conn, err := grpc.Dial(cfg.Grpc, opts...)
-
 	if err != nil {
 		logger.Log.Error("SendStats: create client connection failed", zap.Error(err))
 	}

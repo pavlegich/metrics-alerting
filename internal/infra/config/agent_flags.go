@@ -17,7 +17,7 @@ type AgentConfig struct {
 	Key            string `env:"KEY" json:"key"`
 	CryptoKey      string `env:"CRYPTO_KEY" json:"crypto_key"`
 	Config         string `env:"CONFIG"`
-	IP             string `json:"ip"`
+	IP             string `env:"IP" json:"ip"`
 	PollInterval   int    `env:"POLL_INTERVAL" json:"poll_interval"`
 	ReportInterval int    `env:"REPORT_INTERVAL" json:"report_interval"`
 	RateLimit      int    `env:"RATE_LIMIT" json:"rate_limit"`

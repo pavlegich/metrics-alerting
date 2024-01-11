@@ -51,9 +51,9 @@ func main() {
 	// Агент
 	var client interfaces.Agent = nil
 	if cfg.Grpc != "" {
-		client = &grpcagent.Agent{}
+		client = grpcagent.NewAgent(ctx)
 	} else if cfg.Address != "" {
-		client = &httpagent.Agent{}
+		client = httpagent.NewAgent(ctx)
 	}
 
 	if client == nil {

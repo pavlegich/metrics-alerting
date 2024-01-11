@@ -21,6 +21,7 @@ type ServerConfig struct {
 	CryptoKey     string `env:"CRYPTO_KEY" json:"crypto_key"`
 	Config        string `env:"CONFIG"`
 	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
+	Profile       string `env:"PROFILE" json:"profile"`
 	Restore       bool   `env:"RESTORE" json:"restore"`
 	StoreInterval int    `env:"STORE_INTERVAL" json:"store_interval"`
 	Network       *net.IPNet
@@ -42,6 +43,7 @@ func ServerParseFlags(ctx context.Context) (*ServerConfig, error) {
 	flag.StringVar(&cfg.Config, "c", cfg.Config, "alias for -config")
 	flag.StringVar(&cfg.TrustedSubnet, "t", "", "Trusted subnet CIDR")
 	// 172.17.0.0/24
+	flag.StringVar(&cfg.Profile, "profile", "localhost:8081", "Profile endpoint address host:port")
 	flag.BoolVar(&cfg.Restore, "r", false, "Restore values from the disk")
 	flag.IntVar(&cfg.StoreInterval, "i", 5, "Frequency of storing on disk")
 

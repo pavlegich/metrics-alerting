@@ -27,6 +27,8 @@ type (
 		Get(ctx context.Context, metricType string, metricName string) (string, int)
 	}
 
+	// Storage содержит методы для работы хранилища.
+	//go:generate mockgen -destination=../mocks/mock_Storage.go -package=mocks github.com/pavlegich/metrics-alerting/internal/interfaces Storage
 	Storage interface {
 		Save(ctx context.Context, ms MetricStorage) error
 		Load(ctx context.Context, ms MetricStorage) error
