@@ -18,6 +18,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -29,7 +30,12 @@ type Agent struct {
 func (a *Agent) SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *config.AgentConfig) {
 	interval := time.Duration(time.Duration(cfg.ReportInterval) * time.Second)
 
-	conn, err := grpc.Dial(cfg.Grpc, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	opts := []grpc.DialOption{}
+	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	opts = append(opts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
+
+	conn, err := grpc.Dial(cfg.Grpc, opts...)
+
 	if err != nil {
 		logger.Log.Error("SendStats: create client connection failed", zap.Error(err))
 	}

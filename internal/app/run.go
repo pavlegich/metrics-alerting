@@ -25,6 +25,7 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/server/httpserver"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"go.uber.org/zap"
+	_ "google.golang.org/grpc/encoding/gzip"
 )
 
 // Run инициализирует основные компоненты и запускает сервер.
