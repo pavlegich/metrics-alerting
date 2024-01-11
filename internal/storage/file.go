@@ -44,7 +44,11 @@ func (f *File) Save(ctx context.Context, ms interfaces.MetricStorage) error {
 	defer f.mu.Unlock()
 
 	// сериализуем структуру в JSON формат
-	storage := ms.GetAll(ctx)
+	metrics := ms.GetAll(ctx)
+	storage := NewFileMetrics(ctx)
+	for m, v := range metrics {
+		storage.Metrics[m] = v
+	}
 
 	data, err := json.Marshal(storage)
 	if err != nil {
