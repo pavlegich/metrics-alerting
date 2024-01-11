@@ -18,6 +18,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 type Agent struct {
@@ -33,13 +34,6 @@ func (a *Agent) SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *
 	client := pb.NewMetricsClient(conn)
 	defer conn.Close()
 
-	stream, err := client.Updates(ctx)
-	if err != nil {
-		logger.Log.Error("SendStats: make client stream failed", zap.Error(err))
-		return
-	}
-	defer stream.CloseSend()
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -47,6 +41,18 @@ func (a *Agent) SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *
 		default:
 			jobs := make(chan interfaces.StatsStorage)
 			g := new(errgroup.Group)
+
+			// метадата, наподобие headers в http запросе
+			md := metadata.Pairs(
+				"X-Real-IP", cfg.IP,
+			)
+			mdCtx := metadata.NewOutgoingContext(ctx, md)
+
+			stream, err := client.Updates(mdCtx)
+			if err != nil {
+				logger.Log.Error("SendStats: make client stream failed", zap.Error(err))
+				return
+			}
 			for w := 1; w <= cfg.RateLimit; w++ {
 				g.Go(func() error {
 					return sendWorker(ctx, cfg, jobs, stream)
@@ -58,6 +64,7 @@ func (a *Agent) SendStats(ctx context.Context, st interfaces.StatsStorage, cfg *
 				logger.Log.Error("SendStats: sendWorker run failed",
 					zap.Error(err))
 			}
+			stream.CloseSend()
 		}
 		time.Sleep(interval)
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	pb "github.com/pavlegich/metrics-alerting/internal/proto"
 	ctrl "github.com/pavlegich/metrics-alerting/internal/server/grpcserver/handlers"
+	"github.com/pavlegich/metrics-alerting/internal/server/grpcserver/interceptors"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"google.golang.org/grpc"
 )
@@ -23,6 +24,14 @@ func NewServer(ctx context.Context, memStorage *storage.MemStorage,
 	database *storage.Database, file *storage.File, cfg *config.ServerConfig) interfaces.Server {
 	controller := ctrl.NewController(ctx, memStorage, database, file)
 	var opts []grpc.ServerOption
+	opts = append(opts, grpc.ChainUnaryInterceptor(
+		interceptors.WithUnaryLogging,
+		interceptors.WithUnaryNetworking(cfg.Network),
+	))
+	opts = append(opts, grpc.ChainStreamInterceptor(
+		interceptors.WithStreamLogging,
+		interceptors.WithStreamNetworking(cfg.Network),
+	))
 
 	srv := grpc.NewServer(opts...)
 	pb.RegisterMetricsServer(srv, controller)

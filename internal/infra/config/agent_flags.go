@@ -17,6 +17,7 @@ type AgentConfig struct {
 	Key            string `env:"KEY" json:"key"`
 	CryptoKey      string `env:"CRYPTO_KEY" json:"crypto_key"`
 	Config         string `env:"CONFIG"`
+	IP             string `json:"ip"`
 	PollInterval   int    `env:"POLL_INTERVAL" json:"poll_interval"`
 	ReportInterval int    `env:"REPORT_INTERVAL" json:"report_interval"`
 	RateLimit      int    `env:"RATE_LIMIT" json:"rate_limit"`
@@ -34,6 +35,7 @@ func AgentParseFlags(ctx context.Context) (*AgentConfig, error) {
 	flag.StringVar(&cfg.Key, "k", "", "Key for sign")
 	flag.IntVar(&cfg.RateLimit, "l", 1, "Number of simultaneous requests to the server")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "Path to public key")
+	flag.StringVar(&cfg.IP, "ip", "", "Real agent IP")
 	// flag.StringVar(&cfg.Config, "config", "/Users/Pavel/Desktop/Go.Edu/metrics-alerting/internal/infra/config/agent_config.json", "Path to config")
 	flag.StringVar(&cfg.Config, "config", "", "Path to config")
 	flag.StringVar(&cfg.Config, "c", cfg.Config, "alias for -config")

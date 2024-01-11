@@ -150,7 +150,7 @@ func Send(ctx context.Context, target string, cfg *config.AgentConfig, stats ...
 	r.Header.Set("Content-Encoding", "gzip")
 	r.Header.Set("Accept-Encoding", "gzip")
 	r.Header.Set("Content-Type", "application/json")
-	r.Header.Set("X-Real-IP", "172.17.0.20")
+	r.Header.Set("X-Real-IP", cfg.IP)
 
 	if cfg.CryptoKey != "" {
 		r.Header.Set("Content-Encryption", "rsa")
