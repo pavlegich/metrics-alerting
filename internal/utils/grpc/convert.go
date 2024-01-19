@@ -2,9 +2,11 @@ package grpc
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 	pb "github.com/pavlegich/metrics-alerting/internal/proto"
+	"google.golang.org/grpc/codes"
 )
 
 func ConvertFromMetricsToGRPC(metric entities.Metrics) (*pb.Metric, error) {
@@ -22,6 +24,21 @@ func ConvertFromMetricsToGRPC(metric entities.Metrics) (*pb.Metric, error) {
 	}
 
 	return pbMetric, nil
+}
+
+func ConvertCodeHTTPtoGRPC(code int) codes.Code {
+	switch code {
+	case http.StatusNotFound:
+		return codes.NotFound
+	case http.StatusBadRequest:
+		return codes.InvalidArgument
+	case http.StatusInternalServerError:
+		return codes.Internal
+	case http.StatusNotImplemented:
+		return codes.Unimplemented
+	default:
+		return codes.Unknown
+	}
 }
 
 // func ConvertFromGRPCToMetrics(pbMetric *pb.Metric) (entities.Metrics, error) {

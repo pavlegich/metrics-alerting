@@ -4,6 +4,7 @@ package grpcserver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	pb "github.com/pavlegich/metrics-alerting/internal/proto"
+	utils "github.com/pavlegich/metrics-alerting/internal/utils/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -38,11 +40,11 @@ func NewController(ctx context.Context, ms interfaces.MetricStorage, db interfac
 func (c *Controller) Updates(stream pb.Metrics_UpdatesServer) error {
 	for {
 		in, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return stream.SendAndClose(&emptypb.Empty{})
 		}
 		if err != nil {
-			return fmt.Errorf("Updates: recieve stream failed %w", err)
+			return status.Errorf(codes.Internal, "Updates: recieve stream failed %s", err)
 		}
 
 		var mValue string
@@ -52,12 +54,12 @@ func (c *Controller) Updates(stream pb.Metrics_UpdatesServer) error {
 		case "counter":
 			mValue = fmt.Sprint(in.Metric.Delta)
 		default:
-			return fmt.Errorf("Updates: invalid metric type %s", in.Metric.Type)
+			return status.Errorf(codes.InvalidArgument, "Updates: invalid metric type %s", in.Metric.Type)
 		}
 
-		code := c.MemStorage.Put(stream.Context(), in.Metric.Type, in.Metric.Id, mValue)
-		if code != http.StatusOK {
-			return fmt.Errorf("Updates: put metric code %v", code)
+		codePut := c.MemStorage.Put(stream.Context(), in.Metric.Type, in.Metric.Id, mValue)
+		if codePut != http.StatusOK {
+			return status.Error(utils.ConvertCodeHTTPtoGRPC(codePut), "Updates: put metric error")
 		}
 	}
 }
@@ -73,12 +75,12 @@ func (c *Controller) Update(ctx context.Context, in *pb.UpdateRequest) (*pb.Upda
 	case "counter":
 		mValue = fmt.Sprint(in.Metric.Delta)
 	default:
-		return nil, fmt.Errorf("Update: invalid metric type %s", in.Metric.Type)
+		return nil, status.Errorf(codes.InvalidArgument, "Update: invalid metric type %s", in.Metric.Type)
 	}
 
-	code := c.MemStorage.Put(ctx, in.Metric.Type, in.Metric.Id, mValue)
-	if code != http.StatusOK {
-		return nil, fmt.Errorf("Update: put metric code %v", code)
+	codePut := c.MemStorage.Put(ctx, in.Metric.Type, in.Metric.Id, mValue)
+	if codePut != http.StatusOK {
+		return nil, status.Error(utils.ConvertCodeHTTPtoGRPC(codePut), "Update: put metric error")
 	}
 
 	pbMetric := &pb.Metric{
@@ -86,9 +88,9 @@ func (c *Controller) Update(ctx context.Context, in *pb.UpdateRequest) (*pb.Upda
 		Type: in.Metric.Type,
 	}
 
-	mValue, code = c.MemStorage.Get(ctx, in.Metric.Type, in.Metric.Id)
-	if code != http.StatusOK {
-		return nil, fmt.Errorf("Value: get metric code %v", code)
+	mValue, codeGet := c.MemStorage.Get(ctx, in.Metric.Type, in.Metric.Id)
+	if codeGet != http.StatusOK {
+		return nil, status.Errorf(utils.ConvertCodeHTTPtoGRPC(codeGet), "Update: get metric error")
 	}
 
 	switch pbMetric.Type {
@@ -118,7 +120,7 @@ func (c *Controller) Update(ctx context.Context, in *pb.UpdateRequest) (*pb.Upda
 func (c *Controller) Value(ctx context.Context, in *pb.ValueRequest) (*pb.ValueResponse, error) {
 	metric, code := c.MemStorage.Get(ctx, in.Metric.Type, in.Metric.Id)
 	if code != http.StatusOK {
-		return nil, fmt.Errorf("Value: get metric code %v", code)
+		return nil, status.Errorf(utils.ConvertCodeHTTPtoGRPC(code), "Value: get metric error")
 	}
 
 	respMetric := &pb.Metric{
