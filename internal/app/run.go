@@ -13,17 +13,19 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/pavlegich/metrics-alerting/internal/interfaces"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/infra/database"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
 	"github.com/pavlegich/metrics-alerting/internal/server"
-	"github.com/pavlegich/metrics-alerting/internal/server/handlers"
-	"github.com/pavlegich/metrics-alerting/internal/server/middlewares"
+	"github.com/pavlegich/metrics-alerting/internal/server/grpcserver"
+	"github.com/pavlegich/metrics-alerting/internal/server/httpserver"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"go.uber.org/zap"
+	_ "google.golang.org/grpc/encoding/gzip"
 )
 
 // Run инициализирует основные компоненты и запускает сервер.
@@ -41,7 +43,7 @@ func Run(idleConnsClosed chan struct{}) error {
 	// Флаги
 	cfg, err := config.ServerParseFlags(ctx)
 	if err != nil {
-		return fmt.Errorf("Run: parse flags error %w", err)
+		logger.Log.Error("Run: parse flags error", zap.Error(err))
 	}
 
 	// Интервалы
@@ -71,9 +73,6 @@ func Run(idleConnsClosed chan struct{}) error {
 	// Файл
 	file := storage.NewFile(cfg.StoragePath)
 
-	// Контроллер
-	webhook := handlers.NewWebhook(ctx, memStorage, database, file, cfg)
-
 	// Ключ для хеширования
 	if cfg.Key != "" {
 		entities.Key = cfg.Key
@@ -83,14 +82,26 @@ func Run(idleConnsClosed chan struct{}) error {
 	if cfg.Restore {
 		switch {
 		case cfg.Database != "":
-			if err := database.Load(ctx, webhook.MemStorage); err != nil {
+			if err := database.Load(ctx, memStorage); err != nil {
 				logger.Log.Error("Run: restore storage from database failed", zap.Error(err))
 			}
 		case cfg.StoragePath != "":
-			if err := file.Load(ctx, webhook.MemStorage); err != nil {
+			if err := file.Load(ctx, memStorage); err != nil {
 				logger.Log.Error("Run: restore storage from file failed", zap.Error(err))
 			}
 		}
+	}
+
+	// Сервер
+	var srv interfaces.Server = nil
+	if cfg.Grpc != "" {
+		srv = grpcserver.NewServer(ctx, memStorage, database, file, cfg)
+	} else if cfg.Address != "" {
+		srv = httpserver.NewServer(ctx, memStorage, database, file, cfg)
+	}
+
+	if srv == nil {
+		return fmt.Errorf("Run: server is nil")
 	}
 
 	// Хранение данных в базе данных или файле
@@ -102,31 +113,23 @@ func Run(idleConnsClosed chan struct{}) error {
 
 		wg.Add(1)
 		go func() {
-			saveFunc(ctx, webhook, storeInterval)
+			saveFunc(ctx, memStorage, database, file, storeInterval)
 			wg.Done()
 		}()
 	}
 
-	// Роутер
-	r := chi.NewRouter()
-	r.Use(middlewares.Recovery)
-	r.Mount("/", webhook.Route(ctx))
-
 	// Профилирование
-	mux := http.NewServeMux()
-	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	profile := http.Server{
-		Addr:    "localhost:8081",
-		Handler: mux,
-	}
-	go func() {
-		profile.ListenAndServe()
-	}()
-
-	// Сервер
-	srv := http.Server{
-		Addr:    cfg.Address,
-		Handler: r,
+	var profile *http.Server = nil
+	if cfg.Profile != "" {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		profile := &http.Server{
+			Addr:    cfg.Profile,
+			Handler: mux,
+		}
+		go func() {
+			profile.ListenAndServe()
+		}()
 	}
 
 	// Завершение программы
@@ -141,9 +144,11 @@ func Run(idleConnsClosed chan struct{}) error {
 			logger.Log.Error("server shutdown failed",
 				zap.Error(err))
 		}
-		if err := profile.Shutdown(ctxShutDown); err != nil {
-			logger.Log.Error("profile shutdown failed",
-				zap.Error(err))
+		if profile != nil {
+			if err := profile.Shutdown(ctxShutDown); err != nil {
+				logger.Log.Error("profile shutdown failed",
+					zap.Error(err))
+			}
 		}
 
 		cancelRun()
@@ -153,7 +158,7 @@ func Run(idleConnsClosed chan struct{}) error {
 		close(idleConnsClosed)
 	}()
 
-	logger.Log.Info("running server", zap.String("addr", cfg.Address))
+	logger.Log.Info("running server", zap.String("addr", srv.GetAddress(ctx)))
 
-	return srv.ListenAndServe()
+	return srv.Serve(ctx)
 }

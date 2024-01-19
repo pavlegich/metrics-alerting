@@ -5,21 +5,29 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 )
 
 // MemStorage хранит данные метрик сервера.
 type MemStorage struct {
 	Metrics map[string]string
+	mu      *sync.Mutex
 }
 
 // NewMemStorage создаёт новое хранилище метрик сервера.
 func NewMemStorage(ctx context.Context) *MemStorage {
-	return &MemStorage{make(map[string]string)}
+	return &MemStorage{
+		Metrics: make(map[string]string),
+		mu:      &sync.Mutex{},
+	}
 }
 
 // Put обрабатывает данные метрики, в случае успеха сохраняет
 // в хранилище сервера.
 func (ms *MemStorage) Put(ctx context.Context, metricType string, metricName string, metricValue string) int {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
 	if metricName == "" {
 		return http.StatusNotFound
 	}
@@ -57,6 +65,9 @@ func (ms *MemStorage) Put(ctx context.Context, metricType string, metricName str
 
 // Get получает из хранилища значение указанной метрики и возвращает это значение.
 func (ms *MemStorage) Get(ctx context.Context, metricType string, metricName string) (string, int) {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
 	if (metricType != "gauge") && (metricType != "counter") {
 		return "", http.StatusNotImplemented
 	}

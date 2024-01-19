@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 )
@@ -17,24 +18,31 @@ type FileMetrics struct {
 
 // NewFileMetrics создаёт новое хранилище метрик для файла.
 func NewFileMetrics(ctx context.Context) *FileMetrics {
-	return &FileMetrics{Metrics: make(map[string]string)}
+	return &FileMetrics{
+		Metrics: make(map[string]string),
+	}
 }
 
 // File содержит информацию о пути к файлу.
 type File struct {
 	path string
+	mu   *sync.Mutex
 }
 
 // NewFile создаёт новый объект File для хранения метрик сервера.
 func NewFile(path string) *File {
 	return &File{
 		path: path,
+		mu:   &sync.Mutex{},
 	}
 }
 
 // Save получает все текущие метрики из хранилища сервера,
 // преобразует их в JSON формат и сохраняет в файл.
 func (f *File) Save(ctx context.Context, ms interfaces.MetricStorage) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	// сериализуем структуру в JSON формат
 	metrics := ms.GetAll(ctx)
 	storage := NewFileMetrics(ctx)

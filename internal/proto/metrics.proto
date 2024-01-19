@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/pavlegich/metrics-alerting/internal/proto";
+
+import "google/protobuf/empty.proto";
+
+service Metrics {
+    rpc Ping(google.protobuf.Empty) returns (PingResponse);
+    rpc Updates(stream UpdatesRequest) returns (google.protobuf.Empty);
+    rpc Update(UpdateRequest) returns (UpdateResponse);
+    rpc Value(ValueRequest) returns (ValueResponse);
+}
+
+message PingResponse {
+    bool ok = 1;
+}
+
+message UpdatesRequest {
+    Metric metric = 1;
+}
+
+message UpdateRequest {
+    Metric metric = 1;
+}
+
+message UpdateResponse {
+    Metric metric = 1;
+}
+
+message ValueRequest {
+    Metric metric = 1;
+}
+
+message ValueResponse {
+    Metric metric = 1;
+}
+
+message Metric {
+    string id = 1;
+    string type = 2;
+    int64 delta = 3;
+    double value = 4;
+}

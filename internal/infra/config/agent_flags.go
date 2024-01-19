@@ -13,9 +13,11 @@ import (
 // AgentConfig содержит значения флагов и переменных окружения агента.
 type AgentConfig struct {
 	Address        string `env:"ADDRESS" json:"address"`
+	Grpc           string `env:"GRPC" json:"grpc"`
 	Key            string `env:"KEY" json:"key"`
 	CryptoKey      string `env:"CRYPTO_KEY" json:"crypto_key"`
 	Config         string `env:"CONFIG"`
+	IP             string `env:"IP" json:"ip"`
 	PollInterval   int    `env:"POLL_INTERVAL" json:"poll_interval"`
 	ReportInterval int    `env:"REPORT_INTERVAL" json:"report_interval"`
 	RateLimit      int    `env:"RATE_LIMIT" json:"rate_limit"`
@@ -27,11 +29,14 @@ func AgentParseFlags(ctx context.Context) (*AgentConfig, error) {
 	cfg := &AgentConfig{}
 
 	flag.StringVar(&cfg.Address, "a", "localhost:8080", "HTTP-server endpoint address host:port")
+	flag.StringVar(&cfg.Grpc, "grpc", "", "gRPC-server endpoint address host:port")
 	flag.IntVar(&cfg.PollInterval, "p", 2, "Frequency of metrics polling from the runtime package")
 	flag.IntVar(&cfg.ReportInterval, "r", 5, "Frequency of sending metrics to HTTP-server")
 	flag.StringVar(&cfg.Key, "k", "", "Key for sign")
 	flag.IntVar(&cfg.RateLimit, "l", 1, "Number of simultaneous requests to the server")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "Path to public key")
+	flag.StringVar(&cfg.IP, "ip", "", "Real agent IP")
+	// flag.StringVar(&cfg.Config, "config", "/Users/Pavel/Desktop/Go.Edu/metrics-alerting/internal/infra/config/agent_config.json", "Path to config")
 	flag.StringVar(&cfg.Config, "config", "", "Path to config")
 	flag.StringVar(&cfg.Config, "c", cfg.Config, "alias for -config")
 

@@ -1,6 +1,8 @@
 {
     "address": "localhost:8080",
+    "grpc": "localhost:8088",
     "report_interval": 10,
     "poll_interval": 2,
-    "crypto_key": ""
+    "crypto_key": "",
+    "ip": "172.17.0.20"
 }

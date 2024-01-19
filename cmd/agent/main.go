@@ -10,8 +10,11 @@ import (
 	"time"
 
 	"github.com/pavlegich/metrics-alerting/internal/agent"
+	"github.com/pavlegich/metrics-alerting/internal/agent/grpcagent"
+	"github.com/pavlegich/metrics-alerting/internal/agent/httpagent"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/infra/logger"
+	"github.com/pavlegich/metrics-alerting/internal/interfaces"
 	"go.uber.org/zap"
 )
 
@@ -45,19 +48,32 @@ func main() {
 	// Хранилище метрик
 	statsStorage := agent.NewStatStorage(ctx)
 
-	// Периодический опрос и отправка метрик
-	wg.Add(1)
-	go func() {
-		agent.SendStats(ctx, statsStorage, cfg)
-		wg.Done()
-	}()
+	// Агент
+	var client interfaces.Agent = nil
+	if cfg.Grpc != "" {
+		client = grpcagent.NewAgent(ctx)
+	} else if cfg.Address != "" {
+		client = httpagent.NewAgent(ctx)
+	}
 
+	if client == nil {
+		logger.Log.Error("main: client is nil")
+		stop()
+	}
+
+	// Периодический опрос и отправка метрик
 	go func() {
 		agent.PollCPUstats(ctx, statsStorage, cfg)
 	}()
 
 	go func() {
 		agent.PollMemStats(ctx, statsStorage, cfg)
+	}()
+
+	wg.Add(1)
+	go func() {
+		client.SendStats(ctx, statsStorage, cfg)
+		wg.Done()
 	}()
 
 	<-ctx.Done()

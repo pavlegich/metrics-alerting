@@ -5,6 +5,7 @@ import (
 	"context"
 	"runtime"
 
+	"github.com/pavlegich/metrics-alerting/internal/entities"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 )
 
@@ -16,6 +17,7 @@ type (
 		SendBatch(ctx context.Context, cfg *config.AgentConfig) error
 		Update(ctx context.Context, memStats runtime.MemStats, count int, rand float64) error
 		Put(ctx context.Context, sType string, name string, value string) error
+		GetAll(ctx context.Context) []entities.Metrics
 	}
 
 	// MetricStorage содержит методы для работы с метрики на сервере.
@@ -25,6 +27,8 @@ type (
 		Get(ctx context.Context, metricType string, metricName string) (string, int)
 	}
 
+	// Storage содержит методы для работы хранилища.
+	//go:generate mockgen -destination=../mocks/mock_Storage.go -package=mocks github.com/pavlegich/metrics-alerting/internal/interfaces Storage
 	Storage interface {
 		Save(ctx context.Context, ms MetricStorage) error
 		Load(ctx context.Context, ms MetricStorage) error

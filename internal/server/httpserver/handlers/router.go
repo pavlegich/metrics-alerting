@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
-	"github.com/pavlegich/metrics-alerting/internal/server/middlewares"
+	"github.com/pavlegich/metrics-alerting/internal/server/httpserver/middlewares"
 )
 
 // Webhook содержит локальное хранилище метрик и базу данных для сервера.
@@ -31,6 +31,7 @@ func NewWebhook(ctx context.Context, memStorage interfaces.MetricStorage, databa
 func (h *Webhook) Route(ctx context.Context) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middlewares.WithLogging)
+	r.Use(middlewares.WithNetworking(h.Config.Network))
 	r.Use(middlewares.WithSign)
 	r.Use(middlewares.WithDecryption(h.Config.CryptoKey))
 	r.Use(middlewares.WithCompress)

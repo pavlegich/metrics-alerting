@@ -2,20 +2,19 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pavlegich/metrics-alerting/internal/infra/config"
+	"github.com/pavlegich/metrics-alerting/internal/mocks"
 	"github.com/pavlegich/metrics-alerting/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var ps string = "postgresql://localhost:5432/metrics"
 
 func testRequest(t *testing.T, ts *httptest.Server, method,
 	path string) (*http.Response, string) {
@@ -36,14 +35,11 @@ func TestWebhook_HandleMain(t *testing.T) {
 	// запуск сервера
 	ctx := context.Background()
 	ms := storage.NewMemStorage(ctx)
-	db, err := sql.Open("pgx", ps)
-	require.NoError(t, err)
-	defer db.Close()
-	database := storage.NewDatabase(db)
 	cfg := &config.ServerConfig{}
-	h := NewWebhook(ctx, ms, database, nil, cfg)
-	ts := httptest.NewServer(h.Route(ctx))
-	defer ts.Close()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockDB := mocks.NewMockStorage(ctrl)
 
 	type want struct {
 		contentType string
@@ -73,9 +69,12 @@ func TestWebhook_HandleMain(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h.MemStorage = &storage.MemStorage{
-				Metrics: tc.existedValues,
-			}
+			ms.Metrics = tc.existedValues
+
+			h := NewWebhook(ctx, ms, mockDB, nil, cfg)
+			ts := httptest.NewServer(h.Route(ctx))
+			defer ts.Close()
+
 			resp, get := testRequest(t, ts, tc.method, tc.target)
 			defer resp.Body.Close()
 
@@ -90,12 +89,13 @@ func TestCounterPost(t *testing.T) {
 	// запуск сервера
 	ctx := context.Background()
 	ms := storage.NewMemStorage(ctx)
-	db, err := sql.Open("pgx", ps)
-	require.NoError(t, err)
-	defer db.Close()
-	database := storage.NewDatabase(db)
 	cfg := &config.ServerConfig{}
-	h := NewWebhook(ctx, ms, database, nil, cfg)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockDB := mocks.NewMockStorage(ctrl)
+
+	h := NewWebhook(ctx, ms, mockDB, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
@@ -152,12 +152,13 @@ func TestGaugePost(t *testing.T) {
 	// запуск сервера
 	ctx := context.Background()
 	ms := storage.NewMemStorage(ctx)
-	db, err := sql.Open("pgx", ps)
-	require.NoError(t, err)
-	defer db.Close()
 	cfg := &config.ServerConfig{}
-	database := storage.NewDatabase(db)
-	h := NewWebhook(ctx, ms, database, nil, cfg)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockDB := mocks.NewMockStorage(ctrl)
+
+	h := NewWebhook(ctx, ms, mockDB, nil, cfg)
 	ts := httptest.NewServer(h.Route(ctx))
 	defer ts.Close()
 
@@ -214,14 +215,11 @@ func TestGaugeGet(t *testing.T) {
 	// запуск сервера
 	ctx := context.Background()
 	ms := storage.NewMemStorage(ctx)
-	db, err := sql.Open("pgx", ps)
-	require.NoError(t, err)
-	defer db.Close()
-	database := storage.NewDatabase(db)
 	cfg := &config.ServerConfig{}
-	h := NewWebhook(ctx, ms, database, nil, cfg)
-	ts := httptest.NewServer(h.Route(ctx))
-	defer ts.Close()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockDB := mocks.NewMockStorage(ctrl)
 
 	type want struct {
 		contentType string
@@ -277,9 +275,12 @@ func TestGaugeGet(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h.MemStorage = &storage.MemStorage{
-				Metrics: tc.existedValues,
-			}
+			ms.Metrics = tc.existedValues
+
+			h := NewWebhook(ctx, ms, mockDB, nil, cfg)
+			ts := httptest.NewServer(h.Route(ctx))
+			defer ts.Close()
+
 			resp, get := testRequest(t, ts, tc.method, tc.target)
 			defer resp.Body.Close()
 

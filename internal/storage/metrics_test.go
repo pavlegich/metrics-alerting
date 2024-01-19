@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/pavlegich/metrics-alerting/internal/interfaces"
@@ -11,6 +12,9 @@ import (
 )
 
 func TestMemStorage_Put(t *testing.T) {
+	ctx := context.Background()
+	ms := NewMemStorage(ctx)
+
 	type fields struct {
 		Metrics map[string]string
 	}
@@ -128,16 +132,17 @@ func TestMemStorage_Put(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			ms := &MemStorage{
-				Metrics: tc.fields.Metrics,
-			}
-			get := ms.Put(context.Background(), tc.args.metricType, tc.args.metricName, tc.args.metricValue)
+			ms.Metrics = tc.fields.Metrics
+			get := ms.Put(ctx, tc.args.metricType, tc.args.metricName, tc.args.metricValue)
 			assert.Equal(t, tc.want, get)
 		})
 	}
 }
 
 func TestMemStorage_Get(t *testing.T) {
+	ctx := context.Background()
+	ms := NewMemStorage(ctx)
+
 	type fields struct {
 		Metrics map[string]string
 	}
@@ -232,10 +237,8 @@ func TestMemStorage_Get(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			ms := &MemStorage{
-				Metrics: tc.fields.Metrics,
-			}
-			getValue, getCode := ms.Get(context.Background(), tc.args.metricType, tc.args.metricName)
+			ms.Metrics = tc.fields.Metrics
+			getValue, getCode := ms.Get(ctx, tc.args.metricType, tc.args.metricName)
 			assert.Equal(t, tc.want.value, getValue)
 			assert.Equal(t, tc.want.code, getCode)
 		})
@@ -243,6 +246,9 @@ func TestMemStorage_Get(t *testing.T) {
 }
 
 func TestMemStorage_GetAll(t *testing.T) {
+	ctx := context.Background()
+	ms := NewMemStorage(ctx)
+
 	type fields struct {
 		Metrics map[string]string
 	}
@@ -284,10 +290,8 @@ func TestMemStorage_GetAll(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			ms := &MemStorage{
-				Metrics: tc.fields.Metrics,
-			}
-			get := ms.GetAll(context.Background())
+			ms.Metrics = tc.fields.Metrics
+			get := ms.GetAll(ctx)
 			assert.Equal(t, tc.want.metrics, get)
 		})
 	}
@@ -300,7 +304,7 @@ func TestNewMemStorage(t *testing.T) {
 	}{
 		{
 			name: "storage_created",
-			want: &MemStorage{map[string]string{}},
+			want: &MemStorage{map[string]string{}, &sync.Mutex{}},
 		},
 	}
 	for _, tc := range tests {
